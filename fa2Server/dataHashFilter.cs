@@ -1,5 +1,9 @@
 ﻿using log4net;
+using MakC.Common;
+using MakC.Data;
+using MakC.Data.Model;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -66,9 +70,16 @@ namespace fa2Server
         {
             context.Request.EnableBuffering();
 
+            MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
+            isAndroid = context.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1;
+            if (MemoryCacheService.Default.Exists(context.TraceIdentifier)){
+
+            }
+
             var request = context.Request.Body;
             var response = context.Response.Body;
-            string ResponseBody="";
+            string ResponseBody = "";
+            string ErrorMessage = "";
             try
             {
                 using (var newRequest = new MemoryStream())
@@ -78,8 +89,18 @@ namespace fa2Server
                     {
                         RequestBody = await reader.ReadToEndAsync();
                     }
-                   
-                    //todo:这里校验签名
+
+                    if (checkReqSign(context, RequestBody))
+                    {
+                        ErrorMessage = "参数错误";
+                        return;
+                    }
+                    ErrorMessage = checkUserInfo(context, RequestBody);
+                    if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        ErrorMessage = "无效的网络请求!";
+                        return;
+                    }
                     using (var newResponse = new MemoryStream())
                     {
                         context.Response.Body = newResponse;
@@ -97,14 +118,13 @@ namespace fa2Server
                             ResponseBody = await reader.ReadToEndAsync();
                         }
                     }
-
                 }
             }
             catch (Exception exex)
             {
                 log.Error(exex.Message);
                 log.Error(exex.StackTrace);
-                ResponseBody = "";
+                ErrorMessage = "系统错误";
             }
             finally
             {
@@ -112,8 +132,8 @@ namespace fa2Server
                 {
                     JObject ResObj = new JObject();
                     ResObj["code"] = 1;
-                    ResObj["type"] = 0;
-                    ResObj["message"] = "系统错误";
+                    ResObj["type"] = 1;
+                    ResObj["message"] = ErrorMessage;
                     ResponseBody = ResObj.ToString(Newtonsoft.Json.Formatting.None);
                 }
                 string ServerTime = ((DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000).ToString();
@@ -144,6 +164,80 @@ namespace fa2Server
             {
                 await ApiRequest(context);
             }
+        }
+        private static bool checkReqSign(HttpContext context, string ReqData)
+        {
+            string Req_sign = context.Request.Headers["sign"].ToString();
+            string Req_ServerTime = context.Request.Headers["Server-Time"].ToString();
+            if (string.IsNullOrEmpty(Req_sign) || string.IsNullOrEmpty(Req_ServerTime))
+            {
+                return false;
+            }
+            string TmpSign;
+            if (context.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1)
+            {
+                //Android
+                TmpSign = SignData_132Plus(Req_ServerTime, ReqData);
+            }
+            else
+            {
+                //ios
+                TmpSign = SignData_Ios428Plus(Req_ServerTime, ReqData);
+            }
+            return Req_sign == TmpSign;
+        }
+        private static string checkUserInfo(HttpContext context, string ReqData)
+        {
+            var data = (JObject)JsonConvert.DeserializeObject(ReqData);
+            string uuid = data["uuid"].ToString();
+            F2.user account;
+            var dbh = DbContext.Get();
+            if (string.IsNullOrEmpty(uuid))
+            {
+                if (context.Request.Path.Value.EndsWith("register"))
+                {
+                    return "";
+                }else if (context.Request.Path.Value.EndsWith("first_login"))
+                {
+                    account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == data["user_name"].ToString());
+                    if (account == null)
+                    {
+                        return "用户不存在！";
+                    }
+                    if (account.password != data["password"].ToString())
+                    {
+                        return "密码错误";
+                    }
+                }
+                else
+                {
+                    return "参数错误uuid"; 
+                }
+            }
+            else
+            {
+                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
+                if (account == null)
+                {
+                    return "用户不存在！";
+                }
+                if (account.token != data["token"].ToString())
+                {
+                    return "账号已在其它地方登录";
+                }
+                int net_id = data["net_id"].ToString().AsInt();
+                if (net_id > 0)
+                {
+                    if (account.net_id >= net_id)
+                    {
+                        return "无效的网络请求!";
+                    }
+                    account.net_id = net_id;
+                    dbh.Db.Updateable(account).ExecuteCommand();
+                }
+            }
+            MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
+            return "";
         }
 
 

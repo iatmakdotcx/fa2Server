@@ -57,8 +57,28 @@ namespace MakC.Data.Model
             public int TENLOWLV { get; set; }
             public int THLOWLV { get; set; }
 
+            public string base_playerData { get; set; }
+            public string base_playerzhongyao { get; set; }
         }
+        [SugarTable("shops")]
+        public class shop
+        {
+            public shop()
+            {
+            }
 
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public string buyer_uuid { get; set; }
+            public DateTime created_at { get; set; }
+            public string data { get; set; }
+            public string item_id { get; set; }
+            public string item_name { get; set; }
+            public int price { get; set; }
+            public DateTime updated_at { get; set; }
+            public string uuid { get; set; }
+           
+        }
     }
 
 
