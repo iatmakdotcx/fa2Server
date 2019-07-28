@@ -21,6 +21,33 @@ namespace fa2Server.Controllers
         {
             return MemoryCacheService.Default.GetCache<F2.user>("account_" + HttpContext.TraceIdentifier) ?? throw new Exception("用户信息已过期？？？？？？？？");
         }
+
+        private F2.sect_member updateSectInfo(F2.user account)
+        {
+            var dbh = DbContext.Get();
+            F2.sect_member sectMember = dbh.GetEntityDB<F2.sect_member>().GetSingle(ii => ii.playerId == account.id);
+            if (sectMember == null)
+            {
+                sectMember = new F2.sect_member();
+            }
+            sectMember.last_login_time = DateTime.Now;
+            sectMember.playerName = ((JObject)JsonConvert.DeserializeObject(account.player_data))["playerDict"]?["playName"]?.ToString() ?? account.username;
+            sectMember.playerId = account.id;
+            sectMember.playerUuid = account.uuid;
+            sectMember.HYJF = 0;//会员等级
+
+            if (sectMember.id == 0)
+            {
+                dbh.Db.Insertable(sectMember).ExecuteReturnIdentity();
+            }
+            else
+            {
+                dbh.Db.Updateable(sectMember).ExecuteCommand();
+            }
+            return sectMember;
+        }
+
+
         [HttpPost("api/v2/users/register")]
         public JObject register([FromBody] JObject value)
         {
@@ -421,9 +448,69 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
+            var dbh = DbContext.Get();
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.sectId == 0)
+            {
+                //查列表
+                ResObj = sects_list(value);
+                ResObj["type"] = 41;
+                return ResObj;
+            }
+            else
+            {
+                F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sectMember.id);
+                if (sect == null)
+                {
+                    sectMember.sectId = 0;
+                    dbh.Db.Updateable(sectMember).UpdateColumns(ii=>ii.sectId).ExecuteCommand();
 
-            ResObj["data"] = new JArray();
-
+                    //查列表
+                    ResObj = sects_list(value);
+                    ResObj["type"] = 41;
+                    return ResObj;
+                }
+                //宗门信息
+                var sectInfo = new JObject();
+                sectInfo["advanced_smelt_count"] = sectMember.smelt_count;
+                sectInfo["boss_level"] = sect.boss_level;
+                sectInfo["contribution"] = sect.contribution;
+                sectInfo["donate"] = sect.donate;
+                sectInfo["is_creator"] = sect.creator_id == account.id ? 1 : 0;
+                sectInfo["join_time"] = sectMember.join_time.AsTimestamp();
+                sectInfo["leader_name"] = sect.leader_name;
+                sectInfo["max_count"] = sect.max_count;
+                sectInfo["member_count"] = sect.member_count;
+                sectInfo["new_message_id"] = sectMember.new_message_id;
+                sectInfo["position_level"] = sectMember.position_level;
+                sectInfo["sect_coin"] = sectMember.sect_coin;
+                sectInfo["smelt_count"] = sectMember.smelt_count;
+                sectInfo["today_boss_killed"] = sect.boss_HP <= 0;
+                sectInfo["sect_info"] = new JObject(
+                    new JProperty("HYJF", sectMember.HYJF),
+                    new JProperty("playerlv", sectMember.playerlv),
+                    new JProperty("playerName", sectMember.playerName),
+                    new JProperty("uuid", sectMember.playerUuid));
+                sectInfo["sect"] = new JObject(
+                   new JProperty("beast_level", sect.beast_level),
+                   new JProperty("boss_level", sect.boss_level),
+                   new JProperty("capital", sect.capital),
+                   new JProperty("created_at", sect.created_at),
+                   new JProperty("creator_id", sect.creator_id),
+                   new JProperty("dange_level", sect.dange_level),
+                   new JProperty("danqi", sect.danqi),
+                   new JProperty("id", sect.id),
+                   new JProperty("last_login_time", sectMember.last_login_time),
+                   new JProperty("level", sect.level),
+                   new JProperty("library_level", sect.library_level),
+                   new JProperty("message_board_config", sectMember.message_board_config),
+                   new JProperty("name", sect.name),
+                   new JProperty("smelt_level", sect.smelt_level),
+                   new JProperty("updated_at", sect.updated_at),
+                   new JProperty("uuid", sect.uuid)
+                   );
+            }
             ResObj["code"] = 0;
             ResObj["type"] = 41;
             return ResObj;
@@ -434,9 +521,34 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
-
-            ResObj["data"] = new JArray();
-
+            int page = value["page"].AsInt();
+            int per = value["per"].AsInt(30);
+            if (page < 1)
+            {
+                page = 1;
+            }
+            var dbh = DbContext.Get();
+            List<F2.sects> sects = dbh.Db.Queryable<F2.sects>().OrderBy(ii=>ii.id, SqlSugar.OrderByType.Desc).ToPageList(page, per);
+            var list = new JArray();            
+            foreach (var item in sects)
+            {
+                var a = new JObject();
+                a["beast_level"] = item.beast_level;
+                a["boss_level"] = item.boss_level;
+                a["capital"] = item.capital;
+                a["dange_level"] = item.dange_level;
+                a["danqi"] = item.danqi;
+                a["id"] = item.id;
+                a["leader_name"] = item.leader_name;
+                a["level"] = item.level;
+                a["library_level"] = item.library_level;
+                a["max_count"] = item.max_count;
+                a["member_count"] = item.member_count;
+                a["name"] = item.name;
+                a["uuid"] = item.uuid;
+                list.Add(a);
+            }
+            ResObj["data"] = list;
             ResObj["code"] = 0;
             ResObj["type"] = 29;
             return ResObj;
@@ -447,9 +559,51 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
+            string name = value["name"].ToString().Trim();
+            var dbh = DbContext.Get();
+            if (dbh.GetEntityDB<F2.sects>().Count(ii => ii.name == name) > 0)
+            {
+                ResObj["messgae"] = "宗门名字已经存在!";
+                return ResObj;
+            }
+            F2.user account = getUserFromCache();
 
-            ResObj["data"] = new JArray();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.sectId > 0)
+            {
+                ResObj["messgae"] = "玩家已加入其他门派";
+                return ResObj;
+            }
+            F2.sects sect = new F2.sects();
+            sect.uuid = Guid.NewGuid().ToString();
+            sect.name = name;
+            sect.creator_id = account.id;
+            sect.leader_uuid = account.uuid;
+            sect.name = account.username;//((JObject)JsonConvert.DeserializeObject(account.player_data))["playerDict"]?["playName"]?.ToString()??account.username;
+            sect.max_count = 31;
+            sect.member_count = 1;
+            sect.boss_level = 1;
+            dbh.Db.Insertable(sect).ExecuteReturnIdentity();
 
+            sectMember.join_time = DateTime.Now;
+            sectMember.last_login_time = DateTime.Now;
+            sectMember.position_level = 0;
+            sectMember.sectId = sect.id;
+            dbh.Db.Updateable(sectMember).ExecuteCommand();
+
+            ResObj["data"] = new JObject();
+            ResObj["data"]["sect"] = new JObject(
+                new JProperty("level", 0), 
+                new JProperty("name", name),
+                new JProperty("uuid", sect.uuid)
+            );
+            ResObj["data"]["user_sect"] = new JObject(
+                new JProperty("position_level", 0), 
+                new JProperty("sect_id", sect.id), 
+                new JProperty("sect_uuid", sect.uuid),
+                new JProperty("user_id", account.id),
+                new JProperty("user_uuid", account.uuid)
+            );
             ResObj["code"] = 0;
             ResObj["type"] = 28;
             return ResObj;

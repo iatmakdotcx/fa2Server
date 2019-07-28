@@ -77,11 +77,62 @@ namespace MakC.Data.Model
             public int price { get; set; }
             public DateTime updated_at { get; set; }
             public string uuid { get; set; }
-           
+
+        }
+        [SugarTable("sects")]
+        public class sects
+        {
+            public sects()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public string uuid { get; set; }
+            public string name { get; set; }
+            public string leader_name { get; set; }
+            public string leader_uuid { get; set; }
+            public int creator_id { get; set; }
+            public DateTime created_at { get; set; }
+            public int price { get; set; }
+            public int beast_level { get; set; }
+            public int boss_level { get; set; }
+            public int capital { get; set; }
+            public int dange_level { get; set; }
+            public int danqi { get; set; }
+            public int level { get; set; }
+            public int library_level { get; set; }
+            public int max_count { get; set; }
+            public int member_count { get; set; }
+            public int smelt_level { get; set; }
+            public DateTime updated_at { get; set; }
+            public int donate { get; set; }
+            public int contribution { get; set; }
+            public int boss_HP { get; set; }
+        }
+        [SugarTable("sect_member")]
+        public class sect_member
+        {
+            public sect_member()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int sectId { get; set; }
+            public int playerId { get; set; }
+            public string playerUuid { get; set; }
+            public string playerName { get; set; }
+            public int playerlv { get; set; }
+            public int HYJF { get; set; }
+            public DateTime last_login_time { get; set; }
+            public int smelt_count { get; set; }
+            public int sect_coin { get; set; }
+            public DateTime join_time { get; set; }
+            public int new_message_id { get; set; }
+            public int position_level { get; set; }
+            public string message_board_config { get; set; }
         }
     }
-
-
-
 
 }
