@@ -32,21 +32,8 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 8;
-            string username = value["user_name"].ToString();
-            string password = value["password"].ToString();
-
             var dbh = DbContext.Get();
-            F2.user account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == username);
-            if (account == null)
-            {
-                ResObj["message"] = "用户不存在！";
-                return ResObj;
-            }            
-            if (account.password != password)
-            {
-                ResObj["message"] = "密码错误";
-                return ResObj;
-            }
+            F2.user account = getUserFromCache();
             account.token = Guid.NewGuid().ToString();
 
             if (string.IsNullOrEmpty(account.uuid))
@@ -91,22 +78,7 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 3;
-            string username = value["user_name"].ToString();
-            string password = value["password"].ToString();            
-            string uuid = value["uuid"].ToString();
-
-            var dbh = DbContext.Get();
-            F2.user account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == username);
-            if (account == null)
-            {
-                ResObj["message"] = "用户不存在！";
-                return ResObj;
-            }
-            if (account.password != password)
-            {
-                ResObj["message"] = "密码错误";
-                return ResObj;
-            }
+            F2.user account = getUserFromCache();
             F2.setting setting = CahceHelper.GetDBSetting(account.isAndroid);
             var fscq = new JObject();
             fscq["id"] = setting.id;
@@ -131,7 +103,7 @@ namespace fa2Server.Controllers
             ResObj["data"]["fscq"] = fscq.ToString(Formatting.None);
             ResObj["data"]["isDLSave"] =0;
             ResObj["data"]["lastDCTime"] = account.lastDCTime;
-            ResObj["data"]["login_time"] = account.lastLoginTime.AsTimestamp();
+            ResObj["data"]["login_time"] = DateTime.Now.AsTimestamp();
             ResObj["data"]["net_id"] = account.net_id;
             ResObj["data"]["token"] = account.token;
             ResObj["data"]["userdata"] = account.userdata;
@@ -139,41 +111,18 @@ namespace fa2Server.Controllers
             ResObj["code"] = 0;
             return ResObj;
         }
-
         [HttpPost("api/v2/users/save_user")]
         public JObject save_user([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
-            string uuid = value["uuid"].ToString();
-            string token = value["token"].ToString();
-            int net_id = value["net_id"].ToString().AsInt();
-
             var dbh = DbContext.Get();
-            F2.user account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
-            if (account == null)
-            {
-                ResObj["message"] = "用户不存在！";
-                return ResObj;
-            }
-            if (account.token != token)
-            {
-                ResObj["message"] = "账号已在其它地方登录";
-                return ResObj;
-            }
-            if (account.net_id >= net_id)
-            {
-                ResObj["message"] = "无效的网络请求!";
-                return ResObj;
-            }
+            F2.user account = getUserFromCache();
             account.player_data = value["player_data"].ToString();
             account.player_zhong_yao = value["player_zhong_yao"].ToString();
             account.userdata = value["userdata"].ToString();
-
             JObject zhong_yao = (JObject)JsonConvert.DeserializeObject(account.player_zhong_yao);
-
-            account.net_id = net_id;
             account.lastDCTime = zhong_yao["lastDCTime"].ToString().AsInt();
             dbh.Db.Updateable(account).ExecuteCommand();
 
@@ -187,30 +136,14 @@ namespace fa2Server.Controllers
             ResObj["type"] = 2;
             return ResObj;
         }
-
         [HttpPost("api/v2/shops/list")]
         public JObject shops_list([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
-            string uuid = value["uuid"].ToString();
-            string token = value["token"].ToString();
-            int net_id = value["net_id"].ToString().AsInt();
             var dbh = DbContext.Get();
-            F2.user account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
-            if (account == null)
-            {
-                ResObj["message"] = "用户不存在！";
-                return ResObj;
-            }
-            if (account.token != token)
-            {
-                ResObj["message"] = "账号已在其它地方登录";
-                return ResObj;
-            }
-            account.net_id = net_id;
-            dbh.Db.Updateable(account).ExecuteCommand();
+            F2.user account = getUserFromCache();
 
             ResObj["data"] = new JObject();
             ResObj["data"]["ling"] = account.shl;
@@ -242,54 +175,11 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
-           
+            string item_name = value["item_name"].ToString();
 
-            ResObj["data"] = new JObject();
-
-            ResObj["code"] = 0;
-            ResObj["type"] = 18;
-            return ResObj;
-        }
-        [HttpPost("api/v2/shops/owner_shop")]
-        public JObject shops_owner_shop([FromBody] JObject value)
-        {
-            JObject ResObj = new JObject();
-            ResObj["code"] = 1;
-            ResObj["type"] = 1;
-           
-
-            ResObj["data"] = new JObject();
-
-            ResObj["code"] = 0;
-            ResObj["type"] = 18;
-            return ResObj;
-        }
-        [HttpPost("api/v2/shops/owner_sell_logs")]
-        public JObject shops_sell_logs([FromBody] JObject value)
-        {
-            JObject ResObj = new JObject();
-            ResObj["code"] = 1;
-            ResObj["type"] = 1;
-            string uuid = value["uuid"].ToString();
-            string token = value["token"].ToString();
-            int net_id = value["net_id"].ToString().AsInt();
             var dbh = DbContext.Get();
-            F2.user account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
-            if (account == null)
-            {
-                ResObj["message"] = "用户不存在！";
-                return ResObj;
-            }
-            if (account.token != token)
-            {
-                ResObj["message"] = "账号已在其它地方登录";
-                return ResObj;
-            }
-            account.net_id = net_id;
-            dbh.Db.Updateable(account).ExecuteCommand();
-
             var list = new JArray();
-            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == uuid).ToList();
+            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.item_name.Contains(item_name)).ToList();
             foreach (var item in shops)
             {
                 var a = new JObject();
@@ -307,7 +197,66 @@ namespace fa2Server.Controllers
             ResObj["data"] = list;
 
             ResObj["code"] = 0;
-            ResObj["type"] = 18;
+            ResObj["type"] = 19;
+            return ResObj;
+        }
+        [HttpPost("api/v2/shops/owner_shop")]
+        public JObject shops_owner_shop([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            var dbh = DbContext.Get();
+            var list = new JArray();
+            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == value["uuid"].ToString() && ii.buyer_uuid == null).ToList();
+            foreach (var item in shops)
+            {
+                var a = new JObject();
+                a["buyer_uuid"] = item.buyer_uuid ?? "";
+                a["created_at"] = item.created_at.AsTimestamp();
+                a["data"] = item.data;
+                a["id"] = item.id;
+                a["item_id"] = item.item_id;
+                a["item_name"] = item.item_name ?? "";
+                a["price"] = item.price;
+                a["updated_at"] = item.updated_at.AsTimestamp();
+                a["uuid"] = item.uuid;
+                list.Add(a);
+            }
+            ResObj["data"] = list;
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 22;
+            return ResObj;
+        }
+        [HttpPost("api/v2/shops/sell_logs")]
+        public JObject shops_sell_logs([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            var dbh = DbContext.Get();
+            var list = new JArray();
+            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == value["uuid"].ToString() && ii.buyer_uuid != null).ToList();
+            foreach (var item in shops)
+            {
+                var a = new JObject();
+                a["buyer_uuid"] = item.buyer_uuid ?? "";
+                a["created_at"] = item.created_at.AsTimestamp();
+                a["data"] = item.data;
+                a["id"] = item.id;
+                a["item_id"] = item.item_id;
+                a["item_name"] = item.item_name ?? "";
+                a["price"] = item.price;
+                a["updated_at"] = item.updated_at.AsTimestamp();
+                a["uuid"] = item.uuid;
+                list.Add(a);
+            }
+            ResObj["data"] = list;
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 25;
             return ResObj;
         }
         [HttpPost("api/v2/shops/sell")]
@@ -316,35 +265,20 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
-            string uuid = value["uuid"].ToString();
-            string token = value["token"].ToString();
-            int net_id = value["net_id"].ToString().AsInt();
             var dbh = DbContext.Get();
-            F2.user account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
-            if (account == null)
-            {
-                ResObj["message"] = "用户不存在！";
-                return ResObj;
-            }
-            if (account.token != token)
-            {
-                ResObj["message"] = "账号已在其它地方登录";
-                return ResObj;
-            }
-            account.net_id = net_id;
+            F2.user account = getUserFromCache();
             account.player_data = value["player_data"].ToString();
             account.player_zhong_yao = value["player_zhong_yao"].ToString();
             dbh.Db.Updateable(account).ExecuteCommand();
 
 
             var list = new JArray();
-            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == uuid).ToList();
+            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == account.uuid).ToList();
             //if (shops.Count > 10)
             //{
             //    ResObj["message"] = "寄售物品数量已到上限";
             //    return ResObj;
             //}
- 
 
             F2.shop shopItem = new F2.shop();
             shopItem.created_at = DateTime.Now;
@@ -353,7 +287,7 @@ namespace fa2Server.Controllers
             shopItem.price = value["price"].ToString().AsInt();
             shopItem.item_name = value["item_name"].ToString();
             shopItem.item_id = ((JObject)JsonConvert.DeserializeObject(shopItem.data))["itemType"].ToString();
-            shopItem.uuid = uuid;
+            shopItem.uuid = account.uuid;
             dbh.Db.Insertable(shopItem).ExecuteCommand();
 
             shops.Add(shopItem);
@@ -375,6 +309,149 @@ namespace fa2Server.Controllers
 
             ResObj["code"] = 0;
             ResObj["type"] = 17;
+            return ResObj;
+        }
+        [HttpPost("api/v2/shops/buy")]
+        public JObject shops_buy([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            int id = value["id"].ToString().AsInt();
+
+            var dbh = DbContext.Get();
+            F2.user account = getUserFromCache();
+
+            F2.shop shopItem = dbh.GetEntityDB<F2.shop>().GetById(id);
+            if (shopItem == null)
+            {
+                ResObj["messgae"] = "物品不存在！";
+                return ResObj;
+            }
+            if (account.shl < shopItem.price)
+            {
+                ResObj["messgae"] = "商会令不足！";
+                return ResObj;
+            }
+            shopItem.buyer_uuid = account.uuid;
+            dbh.Db.BeginTran();
+            int optCnt = dbh.Db.Updateable(shopItem).UpdateColumns(ii=>ii.buyer_uuid).Where(ii => ii.id == shopItem.id && ii.buyer_uuid == null).ExecuteCommand();
+            if (optCnt != 1)
+            {
+                dbh.Db.RollbackTran();
+                ResObj["messgae"] = "购买失败！";
+                return ResObj;
+            }
+            optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.shl == (ii.shl - shopItem.price)).UpdateColumns(ii => ii.shl).Where(ii => ii.id == account.id && ii.shl >= shopItem.price).ExecuteCommand();
+            if (optCnt != 1)
+            {
+                dbh.Db.RollbackTran();
+                ResObj["messgae"] = "购买失败！";
+                return ResObj;
+            }
+            dbh.Db.CommitTran();
+            account.shl -= shopItem.price;
+
+            ResObj["data"] = new JObject();
+            var a = new JObject();
+            a["buyer_uuid"] = shopItem.buyer_uuid ?? "";
+            a["created_at"] = shopItem.created_at.AsTimestamp();
+            a["data"] = shopItem.data;
+            a["id"] = shopItem.id;
+            a["item_id"] = shopItem.item_id;
+            a["item_name"] = shopItem.item_name ?? "";
+            a["price"] = shopItem.price;
+            a["updated_at"] = shopItem.updated_at.AsTimestamp();
+            a["uuid"] = shopItem.uuid;
+
+            ResObj["data"]["item"] = a;
+            ResObj["data"]["ling"] = account.shl;
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 21;
+            return ResObj;
+        }
+        [HttpPost("api/v2/shops/buy_native_shop")]
+        public JObject shops_buy_native_shop([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            int num = value["num"].ToString().AsInt();
+            F2.user account = getUserFromCache();
+            if (account.bdshl < num)
+            {
+                ResObj["messgae"] = "商会令不足！";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            dbh.Db.BeginTran();
+            int optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.bdshl == (ii.bdshl - num)).UpdateColumns(ii => ii.bdshl).Where(ii => ii.id == account.id && ii.shl >= num).ExecuteCommand();
+            if (optCnt != 1)
+            {
+                dbh.Db.RollbackTran();
+                ResObj["messgae"] = "购买失败！";
+                return ResObj;
+            }
+            dbh.Db.CommitTran();
+            ResObj["data"] = new JObject();
+            ResObj["data"]["ling"] = account.shl;
+            ResObj["data"]["binding_ling"] = account.bdshl;
+            ResObj["code"] = 0;
+            ResObj["type"] = 24;
+            return ResObj;
+        }
+        [HttpPost("api/v2/shops/recaption_item")]
+        public JObject sects_recaption_item([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            ResObj["data"] = new JArray();
+
+            //ResObj["code"] = 0;
+            //ResObj["type"] = 41;
+            return ResObj;
+        }
+        [HttpPost("api/v2/sects/info")]
+        public JObject sects_info([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            ResObj["data"] = new JArray();
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 41;
+            return ResObj;
+        }
+        [HttpPost("api/v2/sects/list")]
+        public JObject sects_list([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            ResObj["data"] = new JArray();
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 29;
+            return ResObj;
+        }
+        [HttpPost("api/v2/sects")]
+        public JObject sects_create([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            ResObj["data"] = new JArray();
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 28;
             return ResObj;
         }
     }

@@ -18,42 +18,11 @@ namespace fa2Server
     {
         private RequestDelegate _next;
         private ILog log = LogManager.GetLogger(Startup.Repository.Name, "dataHashFilter");
-        private bool isAndroid = false;
         public dataHashFilter(RequestDelegate next)
         {
             _next = next;
         }
 
-
-        public async Task Invoke2(HttpContext context)
-        {
-            try
-            {
-                await _next(context);
-            }
-            catch (Exception exex)
-            {
-                log.Error(exex.Message);
-                log.Error(exex.StackTrace);
-            }
-            finally
-            {
-                string ServerTime = ((DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000).ToString();
-                string sign = "";
-
-                using (StreamReader sr = new StreamReader(context.Response.Body))
-                {
-                    if (isAndroid)
-                    {
-                        sign = SignData_132Plus(ServerTime,sr.ReadToEnd());
-                    }
-                    else
-                      sign = SignData_Ios428Plus(ServerTime, sr.ReadToEnd());
-                }
-                context.Response.Headers.Add("Server-Time", ServerTime);
-                context.Response.Headers.Add("Sign", sign);
-            }
-        }
         public async Task NormalRequest(HttpContext context)
         {
             try
@@ -70,12 +39,6 @@ namespace fa2Server
         {
             context.Request.EnableBuffering();
 
-            MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
-            isAndroid = context.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1;
-            if (MemoryCacheService.Default.Exists(context.TraceIdentifier)){
-
-            }
-
             var request = context.Request.Body;
             var response = context.Response.Body;
             string ResponseBody = "";
@@ -90,7 +53,7 @@ namespace fa2Server
                         RequestBody = await reader.ReadToEndAsync();
                     }
 
-                    if (checkReqSign(context, RequestBody))
+                    if (!checkReqSign(context, RequestBody))
                     {
                         ErrorMessage = "参数错误";
                         return;
@@ -98,7 +61,6 @@ namespace fa2Server
                     ErrorMessage = checkUserInfo(context, RequestBody);
                     if (!string.IsNullOrEmpty(ErrorMessage))
                     {
-                        ErrorMessage = "无效的网络请求!";
                         return;
                     }
                     using (var newResponse = new MemoryStream())
@@ -128,6 +90,7 @@ namespace fa2Server
             }
             finally
             {
+                MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
                 if (string.IsNullOrEmpty(ResponseBody))
                 {
                     JObject ResObj = new JObject();
@@ -137,8 +100,8 @@ namespace fa2Server
                     ResponseBody = ResObj.ToString(Newtonsoft.Json.Formatting.None);
                 }
                 string ServerTime = ((DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000).ToString();
-                string sign = "";
-                if (isAndroid)
+                string sign;
+                if (context.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1)
                 {
                     sign = SignData_132Plus(ServerTime, ResponseBody);
                 }
@@ -151,7 +114,6 @@ namespace fa2Server
                     await writer.WriteAsync(ResponseBody);
                     await writer.FlushAsync();
                 }
-
             }
         }
         public async Task Invoke(HttpContext context)
@@ -225,15 +187,15 @@ namespace fa2Server
                 {
                     return "账号已在其它地方登录";
                 }
-                int net_id = data["net_id"].ToString().AsInt();
-                if (net_id > 0)
+                if (data["net_id"] != null)
                 {
+                    int net_id = data["net_id"].ToString().AsInt();
                     if (account.net_id >= net_id)
                     {
                         return "无效的网络请求!";
                     }
                     account.net_id = net_id;
-                    dbh.Db.Updateable(account).ExecuteCommand();
+                    dbh.Db.Updateable(account).UpdateColumns(ii => ii.net_id).ExecuteCommand();
                 }
             }
             MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
