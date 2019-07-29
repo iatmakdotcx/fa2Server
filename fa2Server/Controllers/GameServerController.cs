@@ -470,9 +470,10 @@ namespace fa2Server.Controllers
             //ResObj["type"] = 41;
             return ResObj;
         }
-#endregion 商会
+        #endregion 商会
 
-#region 宗门
+        #region 宗门
+
         [HttpPost("api/v2/sects/info")]
         public JObject sects_info([FromBody] JObject value)
         {
@@ -585,6 +586,33 @@ namespace fa2Server.Controllers
             ResObj["data"] = list;
             ResObj["code"] = 0;
             ResObj["type"] = 29;
+            return ResObj;
+        }
+        [HttpPost("api/v2/sects/join")]
+        public JObject sects_join([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            var dbh = DbContext.Get();
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            int sect_id = value["sect_id"].AsInt();
+            if (dbh.Db.Queryable<F2.sect_joinRequest>().Count(ii => ii.sectId == sect_id && ii.playerId == sectMember.playerId) == 0)
+            {
+                F2.sect_joinRequest request = new F2.sect_joinRequest();
+                request.create_at = DateTime.Now;
+                request.HYJF = sectMember.HYJF;
+                request.playerId = sectMember.playerId;
+                request.playerName = sectMember.playerName;
+                request.playerUuid = sectMember.playerUuid;
+                request.playerlv = sectMember.playerlv;
+                request.sectId = sect_id;
+                dbh.Db.Insertable(request).ExecuteCommand();
+            }
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 37;
             return ResObj;
         }
         [HttpPost("api/v2/sects")]
@@ -714,6 +742,11 @@ namespace fa2Server.Controllers
             string uuid = value["player_uuid"].ToString();
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.position_level != 0 && sectMember.position_level != 1)
+            {
+                ResObj["message"] = "权限不足";
+                return ResObj;
+            }
             var dbh = DbContext.Get();
             F2.sect_joinRequest members = dbh.Db.Queryable<F2.sect_joinRequest>().Where(ii => ii.sectId == sectMember.sectId && ii.playerUuid == uuid).First();
             if (members == null )
@@ -722,17 +755,12 @@ namespace fa2Server.Controllers
                 return ResObj;
             }
             dbh.Db.Deleteable(members).ExecuteCommand();
-            if (members.sectId > 0)
-            {
-                ResObj["message"] = "玩家已加入其他门派";
-                return ResObj;
-            }
             dbh.Db.BeginTran();
             try
             {
                 int optCnt = dbh.Db.Updateable<F2.sect_member>(
-                    new F2.sect_member { sectId = sectMember.sectId, position_level = 7, join_time = DateTime.Now, danqi=0, contribution = 0 })
-                    .UpdateColumns(ii => new { ii.sectId, ii.join_time, ii.position_level })
+                    new F2.sect_member { sectId = sectMember.sectId, position_level = 7, join_time = DateTime.Now, danqi = 0, contribution = 0 })
+                    .UpdateColumns(ii => new { ii.sectId, ii.join_time, ii.position_level, ii.danqi, ii.contribution })
                     .Where(ii => ii.playerUuid == uuid && ii.sectId == 0).ExecuteCommand();
                 if (optCnt!=1)
                 {
@@ -752,6 +780,123 @@ namespace fa2Server.Controllers
             ResObj["type"] = 38;
             return ResObj;
         }
+        [HttpPost("api/v2/sects/reject_join")]
+        public JObject sects_reject_join([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            string uuid = value["player_uuid"].ToString();
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.position_level != 0 && sectMember.position_level != 1)
+            {
+                ResObj["message"] = "权限不足";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            dbh.Db.Deleteable<F2.sect_joinRequest>().Where(ii => ii.sectId == sectMember.sectId && ii.playerUuid == uuid).ExecuteCommand();
+
+            ResObj["message"] = "success";
+            ResObj["code"] = 0;
+            ResObj["type"] = 39;
+            return ResObj;
+        }
+        [HttpPost("api/v2/sects/clear_join_list")]
+        public JObject sects_clear_join_list([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.position_level != 0 && sectMember.position_level != 1)
+            {
+                ResObj["message"] = "权限不足";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            dbh.Db.Deleteable<F2.sect_joinRequest>().Where(ii => ii.sectId == sectMember.sectId).ExecuteCommand();
+
+            ResObj["message"] = "success";
+            ResObj["code"] = 0;
+            ResObj["type"] = 40;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/promotion")]
+        public JObject sects_promotion([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.position_level != 0 && sectMember.position_level != 1)
+            {
+                ResObj["message"] = "权限不足";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            string uuid = value["player_uuid"].ToString();
+            int level = value["level"].AsInt();
+            F2.sect_member member = dbh.GetEntityDB<F2.sect_member>().GetSingle(ii => ii.playerUuid == uuid && ii.sectId == sectMember.sectId);
+            if (member!=null)
+            {
+                member.position_level = level;
+                dbh.Db.Updateable(member).UpdateColumns(ii => ii.position_level).ExecuteCommand();
+
+                ResObj["data"] = new JObject(
+                    new JProperty("contribution", member.contribution),                    
+                    new JProperty("danqi", member.danqi),
+                    new JProperty("id", member.id),
+                    new JProperty("position_level", member.position_level),
+                    new JProperty("sect_id", member.sectId),
+                    new JProperty("user_id", member.playerId),
+                    new JProperty("user_uuid", member.playerUuid)
+               );
+            }
+
+            ResObj["message"] = "success";
+            ResObj["code"] = 0;
+            ResObj["type"] = 49;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/demotion")]
+        public JObject sects_demotion([FromBody] JObject value)
+        {
+            JObject ResObj = sects_promotion(value);
+            ResObj["type"] = 50;
+            return ResObj;
+        }
+        [HttpPost("api/v2/sects/kickout")]
+        public JObject sects_kickout([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.position_level != 0 && sectMember.position_level != 1)
+            {
+                ResObj["message"] = "权限不足";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            string uuid = value["user_uuid"].ToString();
+
+            dbh.Db.Updateable<F2.sect_member>(
+                   new F2.sect_member { sectId = 0})
+                   .UpdateColumns(ii => new { ii.sectId})
+                   .Where(ii => ii.playerUuid == uuid && ii.sectId == sectMember.sectId).ExecuteCommand();
+
+            ResObj["message"] = "success";
+            ResObj["code"] = 0;
+            ResObj["type"] = 31;
+            return ResObj;
+        }
+
         [HttpPost("api/v3/sects/send_message")]
         public JObject sects_send_message([FromBody] JObject value)
         {

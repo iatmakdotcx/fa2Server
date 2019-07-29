@@ -83,7 +83,7 @@ namespace fa2Server
                 }
             }
             catch (Exception exex)
-            {
+            {                
                 log.Error(exex.Message);
                 log.Error(exex.StackTrace);
                 ErrorMessage = "系统错误";
@@ -148,13 +148,12 @@ namespace fa2Server
             }
             return Req_sign == TmpSign;
         }
-        private static string checkUserInfo(HttpContext context, string ReqData)
-        {
-            var data = (JObject)JsonConvert.DeserializeObject(ReqData);
-            string uuid = data["uuid"].ToString();
+        private string checkUserInfo(HttpContext context, string ReqData)
+        {            
+            var data = (JObject)JsonConvert.DeserializeObject(ReqData);           
             F2.user account;
             var dbh = DbContext.Get();
-            if (string.IsNullOrEmpty(uuid))
+            if (data["uuid"] == null)
             {
                 if (context.Request.Path.Value.EndsWith("register"))
                 {
@@ -178,6 +177,7 @@ namespace fa2Server
             }
             else
             {
+                string uuid = data["uuid"].ToString();
                 account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
                 if (account == null)
                 {
