@@ -8,7 +8,7 @@ namespace MakC.Common
     {
         public static long AsTimestamp(this DateTime thisValue)
         {
-            return (thisValue.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000 ;
+            return (thisValue.ToUniversalTime().Ticks - 621355968000000000) / 10000000 ;
         }
     }
 }

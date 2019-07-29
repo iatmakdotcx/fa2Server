@@ -183,6 +183,7 @@ namespace fa2Server
                 {
                     return "用户不存在！";
                 }
+#if !DEBUG
                 if (account.token != data["token"].ToString())
                 {
                     return "账号已在其它地方登录";
@@ -197,6 +198,8 @@ namespace fa2Server
                     account.net_id = net_id;
                     dbh.Db.Updateable(account).UpdateColumns(ii => ii.net_id).ExecuteCommand();
                 }
+#endif
+
             }
             MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
             return "";

@@ -94,7 +94,6 @@ namespace MakC.Data.Model
             public string leader_uuid { get; set; }
             public int creator_id { get; set; }
             public DateTime created_at { get; set; }
-            public int price { get; set; }
             public int beast_level { get; set; }
             public int boss_level { get; set; }
             public int capital { get; set; }
@@ -108,7 +107,7 @@ namespace MakC.Data.Model
             public DateTime updated_at { get; set; }
             public int donate { get; set; }
             public int contribution { get; set; }
-            public int boss_HP { get; set; }
+            public long boss_HP { get; set; }
         }
         [SugarTable("sect_member")]
         public class sect_member
@@ -132,6 +131,70 @@ namespace MakC.Data.Model
             public int new_message_id { get; set; }
             public int position_level { get; set; }
             public string message_board_config { get; set; }
+            public int contribution { get; set; }
+            public int danqi { get; set; }
+            public int awardCnt { get; set; }
+            public int donateCnt { get; set; }
+        }
+        [SugarTable("sect_joinRequest")]
+        public class sect_joinRequest
+        {
+            public sect_joinRequest()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int sectId { get; set; }
+            public int playerId { get; set; }
+            public string playerUuid { get; set; }
+            public string playerName { get; set; }
+            public int playerlv { get; set; }
+            public int HYJF { get; set; }
+            public DateTime create_at { get; set; }
+        }
+        [SugarTable("sectMessage")]
+        public class sectMessage
+        {
+            public sectMessage()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public DateTime create_at { get; set; }
+            public int sectId { get; set; }            
+            public string playerName { get; set; }
+            public string playerUuid { get; set; }
+            public string content { get; set; }
+        }
+        [SugarTable("sectBossAward")]
+        public class sectBossAward
+        {
+            public sectBossAward()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int bossLevel { get; set; }
+            public int playerId { get; set; }
+        }
+        [SugarTable("sectBossDamage")]
+        public class sectBossDamage
+        {
+            public sectBossDamage()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int sectid { get; set; }
+            public long damage { get; set; }
+            public string playerName { get; set; }
+            public int position_level { get; set; }
+            public string playerUuid { get; set; }
+            public int playerId { get; set; }
         }
     }
 
