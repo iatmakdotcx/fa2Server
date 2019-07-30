@@ -75,6 +75,19 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable<F2.sects>(new F2.sects() { leader_name = sectMember.playerName }).UpdateColumns(ii => ii.leader_name).Where(ii => ii.leader_uuid == sectMember.playerUuid).ExecuteCommand();
             return sectMember;
         }
+       
+        private static void NewDay()
+        {
+            var dbh = DbContext.Get();
+            dbh.Db.Updateable<F2.sects>(new F2.sects() { donate = 0 }).UpdateColumns(ii => ii.donate).Where(ii=>ii.id>0).ExecuteCommand();
+            dbh.Db.Updateable<F2.sect_member>(new F2.sect_member() { AttackBossCnt = 0, awardCnt = 0, donateCnt = 0 }).UpdateColumns(ii => new { ii.AttackBossCnt, ii.awardCnt , ii.donateCnt }).Where(ii => ii.id > 0).ExecuteCommand();
+        }
+        [Route("ctl/newday")]
+        public string ctl_newday()
+        {
+            NewDay();
+            return "ok";
+        }
         [HttpPost("api/v2/users/register")]
         public JObject register([FromBody] JObject value)
         {
@@ -97,7 +110,8 @@ namespace fa2Server.Controllers
                 account.isAndroid = HttpContext.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1;
                 var setting = CahceHelper.GetDBSetting(account.isAndroid);
                 account.player_data = setting.base_playerData;
-                account.player_zhong_yao = setting.base_playerzhongyao;                
+                account.player_zhong_yao = setting.base_playerzhongyao;
+                account.shl = 1000;
             }
 
             JObject player_data = (JObject)JsonConvert.DeserializeObject(account.player_data);
@@ -204,7 +218,7 @@ namespace fa2Server.Controllers
             ResObj["data"]["ling"] = account.shl;
             ResObj["data"]["binding_ling"] = account.bdshl;
             var list = new JArray();
-            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.buyer_uuid == null).ToList();
+            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.buyer_uuid == null).OrderBy(ii=>ii.sort, SqlSugar.OrderByType.Desc).ToList();
             foreach (var item in shops)
             {
                 var a = new JObject();
@@ -388,43 +402,161 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "商会令不足！";
                 return ResObj;
             }
-            shopItem.buyer_uuid = account.uuid;
-            dbh.Db.BeginTran();
-            int optCnt = dbh.Db.Updateable(shopItem).UpdateColumns(ii=>ii.buyer_uuid).Where(ii => ii.id == shopItem.id && ii.buyer_uuid == null).ExecuteCommand();
-            if (optCnt != 1)
+            if (string.IsNullOrEmpty(shopItem.uuid))
             {
-                dbh.Db.RollbackTran();
-                ResObj["message"] = "购买失败！";
+                //命令物品
+                dbh.Db.BeginTran();
+                try
+                {
+                    int optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.shl == (ii.shl - shopItem.price)).UpdateColumns(ii => ii.shl).Where(ii => ii.id == account.id && ii.shl >= shopItem.price).ExecuteCommand();
+                    if (optCnt != 1)
+                    {
+                        dbh.Db.RollbackTran();
+                        ResObj["message"] = "购买失败！";
+                        return ResObj;
+                    }
+                    switch (shopItem.item_name)
+                    {
+                        case "绑定令100":
+                            optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.bdshl == (ii.bdshl + shopItem.price)).UpdateColumns(ii => ii.bdshl).Where(ii => ii.id == account.id).ExecuteCommand();
+                            if (optCnt != 1)
+                            {
+                                dbh.Db.RollbackTran();
+                                ResObj["message"] = "购买失败！";
+                                return ResObj;
+                            }
+                            ResObj["message"] = "成功";
+                            break;
+                        case "1万宗门资金":
+                            {
+                                F2.sect_member sectMember = updateSectInfo(account);
+                                if (sectMember.sectId == 0)
+                                {
+                                    dbh.Db.RollbackTran();
+                                    ResObj["message"] = "没有加入宗门";
+                                    return ResObj;
+                                }
+                                optCnt = dbh.Db.Updateable<F2.sects>().ReSetValue(ii => ii.capital == ii.capital + 10000).UpdateColumns(ii => ii.capital).Where(ii => ii.id == sectMember.sectId).ExecuteCommand();
+                                if (optCnt != 1)
+                                {
+                                    dbh.Db.RollbackTran();
+                                    ResObj["message"] = "增加宗门资金失败";
+                                    return ResObj;
+                                }
+                                ResObj["message"] = "宗门资金已增加：10000";
+                                break;
+                            }
+                        case "Boss挑战次数":
+                            {
+                                F2.sect_member sectMember = updateSectInfo(account);
+                                optCnt = dbh.Db.Updateable<F2.sect_member>()
+                                    .ReSetValue(ii => ii.CanAttackBossCnt == (ii.CanAttackBossCnt + 1))
+                                    .UpdateColumns(ii => ii.CanAttackBossCnt).Where(ii => ii.id == sectMember.id).ExecuteCommand();
+                                if (optCnt != 1)
+                                {
+                                    dbh.Db.RollbackTran();
+                                    ResObj["message"] = "购买失败！";
+                                    return ResObj;
+                                }
+                                ResObj["message"] = $"每日可挑战 {sectMember.CanAttackBossCnt + 1} 次宗门Boss";
+                                break;
+                            }
+                        case "刷新宗门Boss":
+                            {
+                                F2.sect_member sectMember = updateSectInfo(account);
+                                if (sectMember.sectId == 0)
+                                {
+                                    dbh.Db.RollbackTran();
+                                    ResObj["message"] = "没有加入宗门";
+                                    return ResObj;
+                                }
+                                F2.sects sects = dbh.Db.Queryable<F2.sects>().With(SqlSugar.SqlWith.HoldLock).InSingle(sectMember.sectId);
+                                if (sects.boss_HP > 0)
+                                {
+                                    dbh.Db.RollbackTran();
+                                    ResObj["message"] = "BOSS未被击杀";
+                                    return ResObj;
+                                }
+                                sects.boss_level++;
+                                sects.boss_HP = 1000000 * sects.boss_level;
+                                dbh.Db.Updateable(sects).UpdateColumns(ii => new { ii.boss_HP, ii.boss_level }).ExecuteCommand();
+                                dbh.Db.Deleteable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
+                                ResObj["message"] = "成功";
+                                break;
+                            }
+                        default:
+                            dbh.Db.RollbackTran();
+                            ResObj["message"] = "????";
+                            return ResObj;
+                            break;
+                    }
+                }
+                catch (Exception)
+                {
+                    dbh.Db.RollbackTran();
+                    ResObj["message"] = "购买失败！";
+                    return ResObj;
+                }
+                dbh.Db.CommitTran();
                 return ResObj;
             }
-            optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.shl == (ii.shl - shopItem.price)).UpdateColumns(ii => ii.shl).Where(ii => ii.id == account.id && ii.shl >= shopItem.price).ExecuteCommand();
-            if (optCnt != 1)
+            else
             {
-                dbh.Db.RollbackTran();
-                ResObj["message"] = "购买失败！";
+                shopItem.buyer_uuid = account.uuid;
+                dbh.Db.BeginTran();
+                try
+                {
+                    int optCnt = dbh.Db.Updateable<F2.shop>(new { buyer_uuid = account.uuid }).UpdateColumns(ii => ii.buyer_uuid).Where(ii => ii.id == shopItem.id && ii.buyer_uuid == null).ExecuteCommand();
+                    if (optCnt != 1)
+                    {
+                        dbh.Db.RollbackTran();
+                        ResObj["message"] = "购买失败！";
+                        return ResObj;
+                    }
+                    optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.shl == (ii.shl - shopItem.price)).UpdateColumns(ii => ii.shl).Where(ii => ii.id == account.id && ii.shl >= shopItem.price).ExecuteCommand();
+                    if (optCnt != 1)
+                    {
+                        dbh.Db.RollbackTran();
+                        ResObj["message"] = "购买失败！";
+                        return ResObj;
+                    }
+                    optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.bdshl == (ii.bdshl + shopItem.price)).UpdateColumns(ii => ii.bdshl).Where(ii => ii.uuid == shopItem.uuid).ExecuteCommand();
+                    if (optCnt != 1)
+                    {
+                        dbh.Db.RollbackTran();
+                        ResObj["message"] = "购买失败！";
+                        return ResObj;
+                    }
+                    dbh.Db.CommitTran();
+                }
+                catch (Exception)
+                {
+                    dbh.Db.RollbackTran();
+                    ResObj["message"] = "购买失败！";
+                    return ResObj;
+                }
+
+                account.shl -= shopItem.price;
+
+                ResObj["data"] = new JObject();
+                var a = new JObject();
+                a["buyer_uuid"] = shopItem.buyer_uuid ?? "";
+                a["created_at"] = shopItem.created_at.AsTimestamp();
+                a["data"] = shopItem.data;
+                a["id"] = shopItem.id;
+                a["item_id"] = shopItem.item_id;
+                a["item_name"] = shopItem.item_name ?? "";
+                a["price"] = shopItem.price;
+                a["updated_at"] = shopItem.updated_at.AsTimestamp();
+                a["uuid"] = shopItem.uuid;
+
+                ResObj["data"]["item"] = a;
+                ResObj["data"]["ling"] = account.shl;
+
+                ResObj["code"] = 0;
+                ResObj["type"] = 21;
                 return ResObj;
             }
-            dbh.Db.CommitTran();
-            account.shl -= shopItem.price;
-
-            ResObj["data"] = new JObject();
-            var a = new JObject();
-            a["buyer_uuid"] = shopItem.buyer_uuid ?? "";
-            a["created_at"] = shopItem.created_at.AsTimestamp();
-            a["data"] = shopItem.data;
-            a["id"] = shopItem.id;
-            a["item_id"] = shopItem.item_id;
-            a["item_name"] = shopItem.item_name ?? "";
-            a["price"] = shopItem.price;
-            a["updated_at"] = shopItem.updated_at.AsTimestamp();
-            a["uuid"] = shopItem.uuid;
-
-            ResObj["data"]["item"] = a;
-            ResObj["data"]["ling"] = account.shl;
-
-            ResObj["code"] = 0;
-            ResObj["type"] = 21;
-            return ResObj;
         }
         [HttpPost("api/v2/shops/buy_native_shop")]
         public JObject shops_buy_native_shop([FromBody] JObject value)
@@ -442,7 +574,7 @@ namespace fa2Server.Controllers
             }
             var dbh = DbContext.Get();
             dbh.Db.BeginTran();
-            int optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.bdshl == (ii.bdshl - num)).UpdateColumns(ii => ii.bdshl).Where(ii => ii.id == account.id && ii.shl >= num).ExecuteCommand();
+            int optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.bdshl == (ii.bdshl - num)).UpdateColumns(ii => ii.bdshl).Where(ii => ii.id == account.id && ii.bdshl >= num).ExecuteCommand();
             if (optCnt != 1)
             {
                 dbh.Db.RollbackTran();
@@ -508,7 +640,7 @@ namespace fa2Server.Controllers
                 sectInfo["advanced_smelt_count"] = sectMember.smelt_count;
                 sectInfo["boss_level"] = sect.boss_level;
                 sectInfo["contribution"] = sectMember.contribution;
-                sectInfo["donate"] = sect.donate;
+                sectInfo["donate"] = sectMember.donateCnt > 0 ? 1 : 0;
                 sectInfo["is_creator"] = sect.creator_id == account.id ? 1 : 0;
                 sectInfo["join_time"] = sectMember.join_time.AsTimestamp();
                 sectInfo["leader_name"] = sect.leader_name;
@@ -534,7 +666,7 @@ namespace fa2Server.Controllers
                    new JProperty("dange_level", sect.dange_level),
                    new JProperty("danqi", sect.danqi),
                    new JProperty("id", sect.id),
-                   new JProperty("last_login_time", sectMember.last_login_time.AsTimestamp()),
+                   new JProperty("last_login_time", sectMember.last_login_time.AddDays(2).AsTimestamp()),
                    new JProperty("level", sect.level),
                    new JProperty("library_level", sect.library_level),
                    new JProperty("message_board_config", sectMember.message_board_config?? "{\"limit_count\":20,\"max_count\":30,\"min_count\":10,\"max_word_size\":30,\"min_word_size\":10,\"position_level\":7}"),
@@ -839,6 +971,11 @@ namespace fa2Server.Controllers
             }
             var dbh = DbContext.Get();
             string uuid = value["player_uuid"].ToString();
+            if (uuid == account.uuid)
+            {
+                ResObj["message"] = "无法调整自己的职位";
+                return ResObj;
+            }
             int level = value["level"].AsInt();
             F2.sect_member member = dbh.GetEntityDB<F2.sect_member>().GetSingle(ii => ii.playerUuid == uuid && ii.sectId == sectMember.sectId);
             if (member!=null)
@@ -896,7 +1033,31 @@ namespace fa2Server.Controllers
             ResObj["type"] = 31;
             return ResObj;
         }
+        [HttpPost("api/v2/sects/quit")]
+        public JObject sects_quit([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
 
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.position_level == 0)
+            {
+                ResObj["message"] = "掌门无法退出！";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            dbh.Db.Updateable<F2.sect_member>(
+                   new F2.sect_member { sectId = 0 })
+                   .UpdateColumns(ii => new { ii.sectId })
+                   .Where(ii => ii.playerUuid == account.uuid).ExecuteCommand();
+
+            ResObj["message"] = "success";
+            ResObj["code"] = 0;
+            ResObj["type"] = 30;
+            return ResObj;
+        }
         [HttpPost("api/v3/sects/send_message")]
         public JObject sects_send_message([FromBody] JObject value)
         {
@@ -1327,9 +1488,9 @@ namespace fa2Server.Controllers
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
-            if (sectMember.awardCnt > 10)
+            if (sectMember.awardCnt > 1)
             {
-                ResObj["message"] = "今天已经领取 10 次！";
+                ResObj["message"] = "今天已经领取过福利";
                 return ResObj;
             }
             var dbh = DbContext.Get();
@@ -1712,12 +1873,17 @@ namespace fa2Server.Controllers
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
             var dbh = DbContext.Get();
-            //if (dbh.GetEntityDB<F2.sectBossDamage>().Count(ii => ii.playerId == sectMember.playerId && ii.sectid == sectMember.sectId) > 0)
-            //{
-            //    ResObj["message"] = "你已挑战过当前Boss，Boss被击杀后你可继续挑战！";
-            //    return ResObj;
-            //}
+            if (sectMember.AttackBossCnt >= sectMember.CanAttackBossCnt)
+            {
+                ResObj["message"] = "已用完挑战次数！\n可在商会中增加“Boss挑战次数”";
+                return ResObj;
+            }
             F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sectMember.sectId);
+            if (sect.boss_HP <= 0)
+            {
+                ResObj["message"] = "Boss已被击杀！\n可在商会中“刷新宗门Boss”";
+                return ResObj;
+            }
             ResObj["data"] = new JObject(
                 new JProperty("boss_level", sect.boss_level),
                 new JProperty("remain_boss_hp", sect.boss_HP)
@@ -1737,49 +1903,58 @@ namespace fa2Server.Controllers
             F2.sect_member sectMember = updateSectInfo(account);
             var dbh = DbContext.Get();
 
+            if (sectMember.AttackBossCnt >= sectMember.CanAttackBossCnt)
+            {
+                ResObj["message"] = "已用完挑战次数！\n可在商会中增加“Boss挑战次数”";
+                return ResObj;
+            }
             dbh.Db.BeginTran();
             try
             {
+                dbh.Db.Updateable<F2.sect_member>().ReSetValue(ii => ii.AttackBossCnt == ii.AttackBossCnt + 1).UpdateColumns(ii => ii.AttackBossCnt).Where(ii => ii.id == sectMember.id).ExecuteCommand();
+                F2.sectBossDamage damage = dbh.GetEntityDB<F2.sectBossDamage>().AsQueryable().First(ii => ii.playerId == sectMember.playerId && ii.sectid == sectMember.sectId);
+                if (damage == null)
+                {
+                    damage = new F2.sectBossDamage();
+                    damage.damage = val;
+                    damage.playerId = sectMember.playerId;
+                    damage.playerName = sectMember.playerName;
+                    damage.playerUuid = sectMember.playerUuid;
+                    damage.position_level = sectMember.position_level;
+                    damage.sectid = sectMember.sectId;
+                    dbh.Db.Insertable(damage).ExecuteCommand();
+                }
+                else
+                {
+                    damage.damage += val;
+                    dbh.Db.Updateable(damage).UpdateColumns(ii => ii.damage).ExecuteCommand();
+                }
                 F2.sects sects = dbh.Db.Queryable<F2.sects>().With(SqlSugar.SqlWith.HoldLock).InSingle(sectMember.sectId);
                 if (sects.boss_HP > val)
                 {
-                    F2.sectBossDamage damage = dbh.GetEntityDB<F2.sectBossDamage>().AsQueryable().First(ii => ii.playerId == sectMember.playerId && ii.sectid == sectMember.sectId);
-                    if (damage == null)
-                    {
-                        damage = new F2.sectBossDamage();
-                        damage.damage = val;
-                        damage.playerId = sectMember.playerId;
-                        damage.playerName = sectMember.playerName;
-                        damage.playerUuid = sectMember.playerUuid;
-                        damage.position_level = sectMember.position_level;
-                        damage.sectid = sectMember.sectId;
-                        dbh.Db.Insertable(damage).ExecuteCommand();
-                    }
-                    else
-                    {
-                        damage.damage += val;
-                        dbh.Db.Updateable(damage).UpdateColumns(ii => ii.damage).ExecuteCommand();
-                    }
                     sects.boss_HP -= damage.damage;
                     dbh.Db.Updateable(sects).UpdateColumns(ii => ii.boss_HP).ExecuteCommand();
                 }
                 else
                 {
                     //killed
+                    sects.boss_HP = 0;
+                    dbh.Db.Updateable(sects).UpdateColumns(ii => ii.boss_HP).ExecuteCommand();
+
                     F2.sectBossAward award = new F2.sectBossAward();
                     award.bossLevel = sects.boss_level;
                     award.playerId = sectMember.playerId;
-                    dbh.Db.Insertable(award).ExecuteCommand();
-                    var dmglst = dbh.Db.Queryable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).Select(ii=>ii.playerId).ToList();
+                    //仅伤害前十的有奖励
+                    var dmglst = dbh.Db.Queryable<F2.sectBossDamage>().Take(10).Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
                     foreach (var item in dmglst)
                     {
                         award.playerId = item;
                         dbh.Db.Insertable(award).ExecuteCommand();
                     }
-                    sects.boss_level++;
-                    sects.boss_HP = 10000000 * sects.boss_level;
-                    dbh.Db.Updateable(sects).UpdateColumns(ii => ii.boss_HP).ExecuteCommand();
-                    dbh.Db.Deleteable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
+                    //sects.boss_level++;
+                    //sects.boss_HP = 10000000 * sects.boss_level;
+                    //dbh.Db.Updateable(sects).UpdateColumns(ii => new{ii.boss_HP,ii.boss_level}).ExecuteCommand();
+                    //dbh.Db.Deleteable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
                 }
                 dbh.Db.CommitTran();
             }
@@ -1827,9 +2002,9 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
-            F2.user account = getUserFromCache();                      
+            F2.user account = getUserFromCache();
             var dbh = DbContext.Get();
-            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Select(ii => ii.bossLevel).ToList();
+            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Where(ii => ii.playerId == account.id).Select(ii => ii.bossLevel).ToList();
             var list = new JArray();
             foreach (var item in awards)
             {
@@ -1838,6 +2013,36 @@ namespace fa2Server.Controllers
             ResObj["data"] = list;
             ResObj["code"] = 0;
             ResObj["type"] = 56;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/get_boss_award")]
+        public JObject get_boss_award([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            int bosslevel = value["boss_level"].AsInt();
+            var awardItem = dbh.Db.Queryable<F2.sectBossAward>().Where(ii => ii.playerId == account.id && ii.bossLevel== bosslevel).First();
+            if (awardItem == null)
+            {
+                ResObj["message"] = "没有可领取的物品";
+                return ResObj;
+            }
+            F2.sect_member sectMember = updateSectInfo(account);
+            dbh.Db.Deleteable<F2.sectBossAward>().In(awardItem.id).ExecuteCommand();
+            sectMember.sect_coin += bosslevel * 100;
+            dbh.Db.Updateable(sectMember).UpdateColumns(ii => ii.sect_coin).ExecuteCommand();
+            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Select(ii => ii.bossLevel).ToList();
+            var list = new JArray();
+            foreach (var item in awards)
+            {
+                list.Add(item);
+            }
+            ResObj["data"] = new JObject(new JProperty("award_list",list),new JProperty("sect_coin", sectMember.sect_coin));
+            ResObj["code"] = 0;
+            ResObj["type"] = 55;
             return ResObj;
         }
 

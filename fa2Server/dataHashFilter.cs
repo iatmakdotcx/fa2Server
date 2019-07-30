@@ -150,41 +150,35 @@ namespace fa2Server
         }
         private string checkUserInfo(HttpContext context, string ReqData)
         {            
-            var data = (JObject)JsonConvert.DeserializeObject(ReqData);           
+            var data = (JObject)JsonConvert.DeserializeObject(ReqData);
             F2.user account;
             var dbh = DbContext.Get();
-            if (data["uuid"] == null)
+            if (context.Request.Path.Value.EndsWith("register"))
             {
-                if (context.Request.Path.Value.EndsWith("register"))
+                return "";
+            }
+            else if (context.Request.Path.Value.EndsWith("first_login"))
+            {
+                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == data["user_name"].ToString());
+                if (account == null)
                 {
-                    return "";
-                }else if (context.Request.Path.Value.EndsWith("first_login"))
-                {
-                    account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == data["user_name"].ToString());
-                    if (account == null)
-                    {
-                        return "用户不存在！";
-                    }
-                    if (account.password != data["password"].ToString())
-                    {
-                        return "密码错误";
-                    }
+                    return "用户不存在！";
                 }
-                else
+                if (account.password != data["password"].ToString())
                 {
-                    return "参数错误uuid"; 
+                    return "密码错误";
                 }
             }
             else
             {
-                string uuid = data["uuid"].ToString();
+                string uuid = data["uuid"]?.ToString();                
                 account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
                 if (account == null)
                 {
                     return "用户不存在！";
                 }
-#if !DEBUG
-                if (account.token != data["token"].ToString())
+#if DEBUG
+                if (account.token != data["token"]?.ToString())
                 {
                     return "账号已在其它地方登录";
                 }
@@ -199,7 +193,6 @@ namespace fa2Server
                     dbh.Db.Updateable(account).UpdateColumns(ii => ii.net_id).ExecuteCommand();
                 }
 #endif
-
             }
             MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
             return "";

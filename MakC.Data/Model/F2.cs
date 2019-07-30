@@ -77,6 +77,7 @@ namespace MakC.Data.Model
             public int price { get; set; }
             public DateTime updated_at { get; set; }
             public string uuid { get; set; }
+            public int sort { get; set; }
 
         }
         [SugarTable("sects")]
@@ -135,6 +136,8 @@ namespace MakC.Data.Model
             public int danqi { get; set; }
             public int awardCnt { get; set; }
             public int donateCnt { get; set; }
+            public int AttackBossCnt { get; set; }
+            public int CanAttackBossCnt { get; set; }
         }
         [SugarTable("sect_joinRequest")]
         public class sect_joinRequest
