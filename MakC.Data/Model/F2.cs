@@ -199,6 +199,20 @@ namespace MakC.Data.Model
             public string playerUuid { get; set; }
             public int playerId { get; set; }
         }
+        [SugarTable("giftCode")]
+        public class giftCode
+        {
+            public giftCode()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int code { get; set; }
+            public string uuid { get; set; }
+            public string itemData { get; set; }
+            public DateTime create_at { get; set; }
+        }
     }
 
 }

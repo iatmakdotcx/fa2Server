@@ -53,7 +53,7 @@ namespace fa2Server
 
             app.UseMiddleware<dataHashFilter>();
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseMvc();
         }
     }

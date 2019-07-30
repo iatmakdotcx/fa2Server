@@ -64,6 +64,7 @@ namespace fa2Server.Controllers
             sectMember.playerlv = GetExpLevel(playerDict["juntuanExp"].AsLong());
             sectMember.HYJF = GetVIPLevel(playerDict["hyJiFen"].AsInt());//会员等级
             sectMember.join_time = DateTime.Now;
+            sectMember.CanAttackBossCnt = 1;
             if (sectMember.id == 0)
             {
                 dbh.Db.Insertable(sectMember).ExecuteReturnIdentity();
@@ -87,6 +88,28 @@ namespace fa2Server.Controllers
         {
             NewDay();
             return "ok";
+        }
+
+        [HttpPost("v1/check_code")]
+        public string check_code([FromBody] JObject value)
+        {
+            string uuid = value["uuid"]?.ToString();
+            int code = value["code"].AsInt();
+            string ResStr = "{\"error\":1000}";
+            if (!string.IsNullOrEmpty(uuid) && code > 0)
+            {
+                var dbh = DbContext.Get();
+                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == uuid && ii.code == code).First();
+                if (oldg != null)
+                {
+                    dbh.Db.Deleteable(oldg).ExecuteCommand();
+                    ResStr = oldg.itemData;
+                }
+            }
+            string dct = ((DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000).ToString();
+            HttpContext.Response.Headers.Add("Server-Time", dct);
+            HttpContext.Response.Headers.Add("Sign", dataHashFilter.MD5Hash(ResStr + "QAbxK1exZYrK6WIO" + dct));
+            return ResStr;
         }
         [HttpPost("api/v2/users/register")]
         public JObject register([FromBody] JObject value)
@@ -484,6 +507,137 @@ namespace fa2Server.Controllers
                                 ResObj["message"] = "成功";
                                 break;
                             }
+                        case "100万元宝兑换码":
+                            {
+
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
+                                if (oldg == null)
+                                {
+                                    gif.code = 1;
+                                }
+                                else
+                                {
+                                    gif.code = oldg.code + 1;
+                                }
+
+                                JObject data = new JObject(
+                                    new JProperty("error", 0),
+                                    new JProperty("GETBODY", new JObject(
+                                        new JProperty("yuanbao", 100000))
+                                        )
+                                    );
+                                gif.itemData = data.ToString(Formatting.None);
+                                dbh.Db.Insertable(gif).ExecuteCommand();
+                                ResObj["message"] = "兑换码:" + gif.code.ToString();
+                                break;
+                            }
+                        case "100万金币兑换码":
+                            {
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
+                                if (oldg == null)
+                                {
+                                    gif.code = 1;
+                                }
+                                else
+                                {
+                                    gif.code = oldg.code + 1;
+                                }
+                                JObject data = new JObject(
+                                    new JProperty("error", 0),
+                                    new JProperty("GETBODY", new JObject(
+                                        new JProperty("jinbi", 100000))
+                                        )
+                                    );
+                                gif.itemData = data.ToString(Formatting.None);
+                                dbh.Db.Insertable(gif).ExecuteCommand();
+                                ResObj["message"] = "兑换码:" + gif.code.ToString();
+                                break;
+                            }
+                        case "周卡":
+                            {
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
+                                if (oldg == null)
+                                {
+                                    gif.code = 1;
+                                }
+                                else
+                                {
+                                    gif.code = oldg.code + 1;
+                                }
+                                JObject data = new JObject(
+                                    new JProperty("error", 0),
+                                    new JProperty("GETBODY", new JObject(
+                                        new JProperty("zhouka", 7))
+                                        )
+                                    );
+                                gif.itemData = data.ToString(Formatting.None);
+                                dbh.Db.Insertable(gif).ExecuteCommand();
+                                ResObj["message"] = "兑换码:" + gif.code.ToString();
+                                break;
+                            }
+                        case "月卡":
+                            {
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
+                                if (oldg == null)
+                                {
+                                    gif.code = 1;
+                                }
+                                else
+                                {
+                                    gif.code = oldg.code + 1;
+                                }
+                                JObject data = new JObject(
+                                    new JProperty("error", 0),
+                                    new JProperty("GETBODY", new JObject(
+                                        new JProperty("yueka", 30))
+                                        )
+                                    );
+                                gif.itemData = data.ToString(Formatting.None);
+                                dbh.Db.Insertable(gif).ExecuteCommand();
+                                ResObj["message"] = "兑换码:" + gif.code.ToString();
+                                break;
+                            }
+                        case "经验丹仙品x10":
+                            {
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
+                                if (oldg == null)
+                                {
+                                    gif.code = 1;
+                                }
+                                else
+                                {
+                                    gif.code = oldg.code + 1;
+                                }
+                                JObject data = new JObject(
+                                    new JProperty("error", 0),
+                                    new JProperty("GETBODY", new JObject(
+                                        new JProperty("itemGetArr", new JArray(
+                                            new JObject(
+                                                new JProperty("childType", "52"),
+                                                new JProperty("itemNum", 10),
+                                                new JProperty("itemType", "8"),
+                                                new JProperty("num", 10)
+                                            ))))));
+                                gif.itemData = data.ToString(Formatting.None);
+                                dbh.Db.Insertable(gif).ExecuteCommand();
+                                ResObj["message"] = "兑换码:" + gif.code.ToString();
+                                break;
+                            }
                         default:
                             dbh.Db.RollbackTran();
                             ResObj["message"] = "????";
@@ -780,6 +934,7 @@ namespace fa2Server.Controllers
             sect.created_at = DateTime.Now;
             sect.updated_at = DateTime.Now;
             sect.id = dbh.Db.Insertable(sect).ExecuteReturnIdentity();
+            sect.boss_HP = 1000000;
 
             sectMember.join_time = DateTime.Now;
             sectMember.last_login_time = DateTime.Now;
@@ -1688,7 +1843,7 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         //高级炼制
-        [HttpPost("/api/v4/sects/advanced_smelt")]
+        [HttpPost("api/v4/sects/advanced_smelt")]
         public JObject sects_advanced_smelt([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -1739,7 +1894,7 @@ namespace fa2Server.Controllers
             ResObj["type"] = 87;
             return ResObj;
         }
-        [HttpPost("/api/v4/sects/advanced_smelt_ten_times")]
+        [HttpPost("api/v4/sects/advanced_smelt_ten_times")]
         public JObject sects_advanced_smelt_ten_times([FromBody] JObject value)
         {
             JObject ResObj = new JObject();

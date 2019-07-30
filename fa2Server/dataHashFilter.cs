@@ -157,7 +157,19 @@ namespace fa2Server
             {
                 return "";
             }
-            else if (context.Request.Path.Value.EndsWith("first_login"))
+            //else if (context.Request.Path.Value.EndsWith("first_login"))
+            //{
+            //    account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == data["user_name"].ToString());
+            //    if (account == null)
+            //    {
+            //        return "用户不存在！";
+            //    }
+            //    if (account.password != data["password"].ToString())
+            //    {
+            //        return "密码错误";
+            //    }
+            //}
+            else if (context.Request.Path.Value.EndsWith("login"))
             {
                 account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == data["user_name"].ToString());
                 if (account == null)
@@ -177,7 +189,6 @@ namespace fa2Server
                 {
                     return "用户不存在！";
                 }
-#if DEBUG
                 if (account.token != data["token"]?.ToString())
                 {
                     return "账号已在其它地方登录";
@@ -192,14 +203,13 @@ namespace fa2Server
                     account.net_id = net_id;
                     dbh.Db.Updateable(account).UpdateColumns(ii => ii.net_id).ExecuteCommand();
                 }
-#endif
             }
             MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
             return "";
         }
 
 
-        private static string MD5Hash(string input)
+        public static string MD5Hash(string input)
         {
             using (var md5 = MD5.Create())
             {
