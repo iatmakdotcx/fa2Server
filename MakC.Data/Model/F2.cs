@@ -78,6 +78,7 @@ namespace MakC.Data.Model
             public DateTime updated_at { get; set; }
             public string uuid { get; set; }
             public int sort { get; set; }
+            public string giftcode { get; set; }
 
         }
         [SugarTable("sects")]

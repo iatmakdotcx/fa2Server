@@ -506,143 +506,33 @@ namespace fa2Server.Controllers
                                 dbh.Db.Deleteable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
                                 ResObj["message"] = "成功";
                                 break;
-                            }
-                        case "100万元宝兑换码":
-                            {
-
-                                F2.giftCode gif = new F2.giftCode();
-                                gif.create_at = DateTime.Now;
-                                gif.uuid = account.uuid;
-                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
-                                if (oldg == null)
-                                {
-                                    gif.code = 1;
-                                }
-                                else
-                                {
-                                    gif.code = oldg.code + 1;
-                                }
-
-                                JObject data = new JObject(
-                                    new JProperty("error", 0),
-                                    new JProperty("GETBODY", new JObject(
-                                        new JProperty("yuanbao", 100000))
-                                        )
-                                    );
-                                gif.itemData = data.ToString(Formatting.None);
-                                dbh.Db.Insertable(gif).ExecuteCommand();
-                                ResObj["message"] = "兑换码:" + gif.code.ToString();
-                                break;
-                            }
-                        case "100万金币兑换码":
-                            {
-                                F2.giftCode gif = new F2.giftCode();
-                                gif.create_at = DateTime.Now;
-                                gif.uuid = account.uuid;
-                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
-                                if (oldg == null)
-                                {
-                                    gif.code = 1;
-                                }
-                                else
-                                {
-                                    gif.code = oldg.code + 1;
-                                }
-                                JObject data = new JObject(
-                                    new JProperty("error", 0),
-                                    new JProperty("GETBODY", new JObject(
-                                        new JProperty("jinbi", 100000))
-                                        )
-                                    );
-                                gif.itemData = data.ToString(Formatting.None);
-                                dbh.Db.Insertable(gif).ExecuteCommand();
-                                ResObj["message"] = "兑换码:" + gif.code.ToString();
-                                break;
-                            }
-                        case "周卡":
-                            {
-                                F2.giftCode gif = new F2.giftCode();
-                                gif.create_at = DateTime.Now;
-                                gif.uuid = account.uuid;
-                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
-                                if (oldg == null)
-                                {
-                                    gif.code = 1;
-                                }
-                                else
-                                {
-                                    gif.code = oldg.code + 1;
-                                }
-                                JObject data = new JObject(
-                                    new JProperty("error", 0),
-                                    new JProperty("GETBODY", new JObject(
-                                        new JProperty("zhouka", 7))
-                                        )
-                                    );
-                                gif.itemData = data.ToString(Formatting.None);
-                                dbh.Db.Insertable(gif).ExecuteCommand();
-                                ResObj["message"] = "兑换码:" + gif.code.ToString();
-                                break;
-                            }
-                        case "月卡":
-                            {
-                                F2.giftCode gif = new F2.giftCode();
-                                gif.create_at = DateTime.Now;
-                                gif.uuid = account.uuid;
-                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
-                                if (oldg == null)
-                                {
-                                    gif.code = 1;
-                                }
-                                else
-                                {
-                                    gif.code = oldg.code + 1;
-                                }
-                                JObject data = new JObject(
-                                    new JProperty("error", 0),
-                                    new JProperty("GETBODY", new JObject(
-                                        new JProperty("yueka", 30))
-                                        )
-                                    );
-                                gif.itemData = data.ToString(Formatting.None);
-                                dbh.Db.Insertable(gif).ExecuteCommand();
-                                ResObj["message"] = "兑换码:" + gif.code.ToString();
-                                break;
-                            }
-                        case "经验丹仙品x10":
-                            {
-                                F2.giftCode gif = new F2.giftCode();
-                                gif.create_at = DateTime.Now;
-                                gif.uuid = account.uuid;
-                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
-                                if (oldg == null)
-                                {
-                                    gif.code = 1;
-                                }
-                                else
-                                {
-                                    gif.code = oldg.code + 1;
-                                }
-                                JObject data = new JObject(
-                                    new JProperty("error", 0),
-                                    new JProperty("GETBODY", new JObject(
-                                        new JProperty("itemGetArr", new JArray(
-                                            new JObject(
-                                                new JProperty("childType", "52"),
-                                                new JProperty("itemNum", 10),
-                                                new JProperty("itemType", "8"),
-                                                new JProperty("num", 10)
-                                            ))))));
-                                gif.itemData = data.ToString(Formatting.None);
-                                dbh.Db.Insertable(gif).ExecuteCommand();
-                                ResObj["message"] = "兑换码:" + gif.code.ToString();
-                                break;
-                            }
+                            }               
                         default:
-                            dbh.Db.RollbackTran();
-                            ResObj["message"] = "????";
-                            return ResObj;
-                            break;
+                            if (!string.IsNullOrEmpty(shopItem.giftcode))
+                            {
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
+                                if (oldg == null)
+                                {
+                                    gif.code = 1;
+                                }
+                                else
+                                {
+                                    gif.code = oldg.code + 1;
+                                }
+                                gif.itemData = shopItem.giftcode;
+                                dbh.Db.Insertable(gif).ExecuteCommand();
+                                ResObj["message"] = "兑换码:" + gif.code.ToString();
+                                break;
+                            }
+                            else
+                            {
+                                dbh.Db.RollbackTran();
+                                ResObj["message"] = "????";
+                                return ResObj;
+                            }
                     }
                 }
                 catch (Exception)
@@ -884,6 +774,16 @@ namespace fa2Server.Controllers
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
             int sect_id = value["sect_id"].AsInt();
+            if (sect_id < 5)
+            {
+
+                sectMember.sectId = sect_id;
+                sectMember.position_level = 7;
+                dbh.Db.Updateable(sectMember).UpdateColumns(ii => new { ii.sectId, ii.position_level }).ExecuteCommand();
+                ResObj["message"] = "你已成功加入宗门！";
+                return ResObj;
+            }
+            else
             if (dbh.Db.Queryable<F2.sect_joinRequest>().Count(ii => ii.sectId == sect_id && ii.playerId == sectMember.playerId) == 0)
             {
                 F2.sect_joinRequest request = new F2.sect_joinRequest();
