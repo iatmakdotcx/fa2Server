@@ -784,8 +784,19 @@ namespace fa2Server.Controllers
                 return ResObj;
             }
             else
-            if (dbh.Db.Queryable<F2.sect_joinRequest>().Count(ii => ii.sectId == sect_id && ii.playerId == sectMember.playerId) == 0)
+            if (dbh.Db.Queryable<F2.sect_joinRequest>().Count(ii => ii.sectId == 0 && ii.playerId == sectMember.playerId) == 0)
             {
+                //没有有宗门则提交申请
+                F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sect_id);
+                if (sect.creator_id == account.id)
+                {
+                    //自己创建的宗门，也直接进
+                    sectMember.sectId = sect_id;
+                    sectMember.position_level = 0;
+                    dbh.Db.Updateable(sectMember).UpdateColumns(ii => new { ii.sectId, ii.position_level }).ExecuteCommand();
+                    ResObj["message"] = "你已成功加入宗门！";
+                    return ResObj;
+                }
                 F2.sect_joinRequest request = new F2.sect_joinRequest();
                 request.create_at = DateTime.Now;
                 request.HYJF = sectMember.HYJF;
