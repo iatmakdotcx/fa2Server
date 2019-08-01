@@ -146,6 +146,18 @@ namespace fa2Server.Controllers
             {
                 player_data["playerDict"]["playerId"] = "G:00000000003";
             }
+            if (player_data["playerDict"]["scslLv"]!=null)
+            {
+                //修改塔的层数
+                player_data["playerDict"]["scslLv"] = player_data["playerDict"]["scslLv"].AsInt() + account.jiaTa;
+                account.jiaTa = 0;
+            }
+            if (player_data["playerDict"]["smTGLV"] !=null)
+            {
+                //修改神墓的层数
+                player_data["playerDict"]["smTGLV"] = player_data["playerDict"]["smTGLV"].AsInt() + account.ShenMu;
+                account.ShenMu = 0;
+            }
             account.lastLoginTime = DateTime.Now;
             account.player_data = player_data.ToString(Formatting.None);
             if (dbh.Db.Updateable(account).ExecuteCommand() == 0)
@@ -267,9 +279,27 @@ namespace fa2Server.Controllers
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 1;
-            string item_name = value["item_name"].ToString();
-
             var dbh = DbContext.Get();
+            string item_name = value["item_name"].ToString();
+            if (item_name.StartsWith("@mm:"))
+            {
+                //修改密码
+                string mm = item_name.Substring(4);
+                if (string.IsNullOrEmpty(mm))
+                {
+                    ResObj["message"] = "空密码?";
+                    return ResObj;
+                }
+                else
+                {
+                    F2.user account = getUserFromCache();
+                    account.password = mm;
+                    dbh.Db.Updateable(account).UpdateColumns(ii => ii.password).ExecuteCommand();
+                    ResObj["message"] = "密码已修改为：" + mm +"\n\n请注销游戏重新登录！";
+                    return ResObj;
+                }
+            }
+           
             var list = new JArray();
             List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.item_name.Contains(item_name)).ToList();
             foreach (var item in shops)
@@ -330,7 +360,8 @@ namespace fa2Server.Controllers
             ResObj["type"] = 1;
             var dbh = DbContext.Get();
             var list = new JArray();
-            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == value["uuid"].ToString() && ii.buyer_uuid != null).ToList();
+            F2.user account = getUserFromCache();
+            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == account.uuid && ii.buyer_uuid != null).ToList();
             foreach (var item in shops)
             {
                 var a = new JObject();
@@ -358,50 +389,53 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;
             var dbh = DbContext.Get();
-            F2.user account = getUserFromCache();
-            account.player_data = value["player_data"].ToString();
-            account.player_zhong_yao = value["player_zhong_yao"].ToString();
-            dbh.Db.Updateable(account).ExecuteCommand();
 
-
-            var list = new JArray();
-            List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == account.uuid).ToList();
-            //if (shops.Count > 10)
-            //{
-            //    ResObj["message"] = "寄售物品数量已到上限";
-            //    return ResObj;
-            //}
-
-            F2.shop shopItem = new F2.shop();
-            shopItem.created_at = DateTime.Now;
-            shopItem.updated_at = DateTime.Now;
-            shopItem.data = value["data"].ToString();
-            shopItem.price = value["price"].ToString().AsInt();
-            shopItem.item_name = value["item_name"].ToString();
-            shopItem.item_id = ((JObject)JsonConvert.DeserializeObject(shopItem.data))["itemType"].ToString();
-            shopItem.uuid = account.uuid;
-            dbh.Db.Insertable(shopItem).ExecuteCommand();
-
-            shops.Add(shopItem);
-            foreach (var item in shops)
-            {
-                var a = new JObject();
-                a["buyer_uuid"] = item.buyer_uuid ?? "";
-                a["created_at"] = item.created_at.AsTimestamp();
-                a["data"] = item.data;
-                a["id"] = item.id;
-                a["item_id"] = item.item_id;
-                a["item_name"] = item.item_name ?? "";
-                a["price"] = item.price;
-                a["updated_at"] = item.updated_at.AsTimestamp();
-                a["uuid"] = item.uuid;
-                list.Add(a);
-            }            
-            ResObj["data"] = list;
-
-            ResObj["code"] = 0;
-            ResObj["type"] = 17;
+            ResObj["message"] = "暂时不能寄售商品";
             return ResObj;
+            //F2.user account = getUserFromCache();
+            //account.player_data = value["player_data"].ToString();
+            //account.player_zhong_yao = value["player_zhong_yao"].ToString();
+            //dbh.Db.Updateable(account).ExecuteCommand();
+
+
+            //var list = new JArray();
+            //List<F2.shop> shops = dbh.Db.Queryable<F2.shop>().Take(100).Where(ii => ii.uuid == account.uuid).ToList();
+            ////if (shops.Count > 10)
+            ////{
+            ////    ResObj["message"] = "寄售物品数量已到上限";
+            ////    return ResObj;
+            ////}
+
+            //F2.shop shopItem = new F2.shop();
+            //shopItem.created_at = DateTime.Now;
+            //shopItem.updated_at = DateTime.Now;
+            //shopItem.data = value["data"].ToString();
+            //shopItem.price = value["price"].ToString().AsInt();
+            //shopItem.item_name = value["item_name"].ToString();
+            //shopItem.item_id = ((JObject)JsonConvert.DeserializeObject(shopItem.data))["itemType"].ToString();
+            //shopItem.uuid = account.uuid;
+            //dbh.Db.Insertable(shopItem).ExecuteCommand();
+
+            //shops.Add(shopItem);
+            //foreach (var item in shops)
+            //{
+            //    var a = new JObject();
+            //    a["buyer_uuid"] = item.buyer_uuid ?? "";
+            //    a["created_at"] = item.created_at.AsTimestamp();
+            //    a["data"] = item.data;
+            //    a["id"] = item.id;
+            //    a["item_id"] = item.item_id;
+            //    a["item_name"] = item.item_name ?? "";
+            //    a["price"] = item.price;
+            //    a["updated_at"] = item.updated_at.AsTimestamp();
+            //    a["uuid"] = item.uuid;
+            //    list.Add(a);
+            //}            
+            //ResObj["data"] = list;
+
+            //ResObj["code"] = 0;
+            //ResObj["type"] = 17;
+            //return ResObj;
         }
         [HttpPost("api/v2/shops/buy")]
         public JObject shops_buy([FromBody] JObject value)
@@ -506,7 +540,23 @@ namespace fa2Server.Controllers
                                 dbh.Db.Deleteable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
                                 ResObj["message"] = "成功";
                                 break;
-                            }               
+                            }
+                        case "100万塔":
+                            {
+                                //增加的数值先记录，下载下载存档的时候直接修改存档
+                                account.jiaTa += 1000000;
+                                dbh.Db.Updateable(account).UpdateColumns(ii => ii.jiaTa).ExecuteCommand();
+                                ResObj["message"] = "请退出游戏重新登录\n\n下次登录塔将增加" + account.jiaTa;
+                                break;
+                            }
+                        case "1000神墓":
+                            {
+                                //增加的数值先记录，下载下载存档的时候直接修改存档
+                                account.ShenMu += 1000;
+                                dbh.Db.Updateable(account).UpdateColumns(ii => ii.ShenMu).ExecuteCommand();
+                                ResObj["message"] = "请退出游戏重新登录\n\n下次登录神墓将增加" + account.ShenMu;
+                                break;
+                            }
                         default:
                             if (!string.IsNullOrEmpty(shopItem.giftcode))
                             {
@@ -709,6 +759,7 @@ namespace fa2Server.Controllers
                    new JProperty("creator_id", sect.creator_id),
                    new JProperty("dange_level", sect.dange_level),
                    new JProperty("danqi", sect.danqi),
+                   new JProperty("dimension_door", 1),
                    new JProperty("id", sect.id),
                    new JProperty("last_login_time", sectMember.last_login_time.AddDays(2).AsTimestamp()),
                    new JProperty("level", sect.level),
@@ -719,6 +770,18 @@ namespace fa2Server.Controllers
                    new JProperty("updated_at", sect.updated_at),
                    new JProperty("uuid", sect.uuid)
                    );
+                if (!string.IsNullOrEmpty(sect.remain_dimension_boss_skill))
+                {
+                    sectInfo["dimension_boss_skill"] = (JArray)JsonConvert.DeserializeObject(sect.remain_dimension_boss_skill);
+                }
+                else
+                {
+                    sectInfo["dimension_boss_skill"] = new JArray();
+                    sect.remain_dimension_boss_skill = "[]";
+                    dbh.Db.Updateable(sect).UpdateColumns(ii => ii.remain_dimension_boss_skill).ExecuteCommand();
+                }
+                sectInfo["today_dimension_boss_killed"] = sect.remain_dimension_boss_hp <= 0;
+                sectInfo["today_dimension_call"] = sect.remain_dimension_boss_hp > 0;
                 ResObj["data"] = sectInfo;
             }
             ResObj["code"] = 0;
@@ -2100,7 +2163,7 @@ namespace fa2Server.Controllers
             dbh.Db.Deleteable<F2.sectBossAward>().In(awardItem.id).ExecuteCommand();
             sectMember.sect_coin += bosslevel * 100;
             dbh.Db.Updateable(sectMember).UpdateColumns(ii => ii.sect_coin).ExecuteCommand();
-            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Select(ii => ii.bossLevel).ToList();
+            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Where(ii=>ii.playerId==account.id).Select(ii => ii.bossLevel).ToList();
             var list = new JArray();
             foreach (var item in awards)
             {
@@ -2111,9 +2174,6 @@ namespace fa2Server.Controllers
             ResObj["type"] = 55;
             return ResObj;
         }
-
-
-
 
         #endregion BOSS
 
@@ -2144,6 +2204,242 @@ namespace fa2Server.Controllers
         }
 
         #endregion 秘境
+        #region 次元门
+        private static List<int> dimensionBossSkills = new List<int>() {
+           172, 180,182,183
+        };
 
+        [HttpPost("api/v3/sects/dimension_call")]
+        public JObject dimension_call([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            var dbh = DbContext.Get();
+            F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sectMember.sectId);
+            if (sect.remain_dimension_boss_hp>0)
+            {
+                ResObj["message"] = "boss未被击杀";
+                return ResObj;
+            }
+            var rr = new Random();
+            var skills = new JArray();
+            for (int i = 0; i < 6; i++)
+            {
+                skills.Add(new JObject(new JProperty("cysmJN", "1"), new JProperty("ID", rr.Next(172, 350))));
+            }
+            sect.remain_dimension_boss_skill = skills.ToString(Formatting.None);
+            sect.remain_dimension_boss_Level++;
+            sect.remain_dimension_boss_hp = sect.remain_dimension_boss_Level * 5000000;
+            dbh.Db.Updateable(sect).UpdateColumns(ii => new { ii.remain_dimension_boss_skill, ii.remain_dimension_boss_hp, ii.remain_dimension_boss_Level }).ExecuteCommand();
+
+            dbh.Db.Deleteable<F2.sectDimensionDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
+
+            ResObj["data"] = new JObject(
+                new JProperty("current_dimension_door", sect.remain_dimension_boss_Level),
+                new JProperty("dimension_boss_skill", skills)
+            );
+            ResObj["code"] = 0;
+            ResObj["type"] = 96;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/get_dismension_boss")]
+        public JObject get_dismension_boss([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            var dbh = DbContext.Get();
+            //if (sectMember.AttackBossCnt >= sectMember.CanAttackBossCnt)
+            //{
+            //    ResObj["message"] = "已用完挑战次数！\n可在商会中增加“Boss挑战次数”";
+            //    return ResObj;
+            //}
+            F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sectMember.sectId);
+            if (sect.remain_dimension_boss_hp <= 0)
+            {
+                ResObj["message"] = "Boss已被击杀！";
+                return ResObj;
+            }
+            ResObj["data"] = new JObject(
+                new JProperty("current_dimension_door", sect.remain_dimension_boss_Level),
+                new JProperty("hp", sect.remain_dimension_boss_hp),
+                new JProperty("dimension_boss_skill", (JArray)JsonConvert.DeserializeObject(sect.remain_dimension_boss_skill))
+            );
+            ResObj["code"] = 0;
+            ResObj["type"] = 93;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/dimension_boss_damage")]
+        public JObject dimension_boss_damage([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            long val = value["val"].AsLong();
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            var dbh = DbContext.Get();
+
+            //if (sectMember.AttackBossCnt >= sectMember.CanAttackBossCnt)
+            //{
+            //    ResObj["message"] = "已用完挑战次数！\n可在商会中增加“Boss挑战次数”";
+            //    return ResObj;
+            //}
+            dbh.Db.BeginTran();
+            try
+            {
+                //dbh.Db.Updateable<F2.sect_member>().ReSetValue(ii => ii.AttackBossCnt == ii.AttackBossCnt + 1).UpdateColumns(ii => ii.AttackBossCnt).Where(ii => ii.id == sectMember.id).ExecuteCommand();
+                F2.sectDimensionDamage damage = dbh.GetEntityDB<F2.sectDimensionDamage>().AsQueryable().First(ii => ii.playerId == sectMember.playerId && ii.sectid == sectMember.sectId);
+                if (damage == null)
+                {
+                    damage = new F2.sectDimensionDamage();
+                    damage.damage = val;
+                    damage.playerId = sectMember.playerId;
+                    damage.playerName = sectMember.playerName;
+                    damage.playerUuid = sectMember.playerUuid;
+                    damage.position_level = sectMember.position_level;
+                    damage.sectid = sectMember.sectId;
+                    dbh.Db.Insertable(damage).ExecuteCommand();
+                }
+                else
+                {
+                    damage.damage += val;
+                    dbh.Db.Updateable(damage).UpdateColumns(ii => ii.damage).ExecuteCommand();
+                }
+                F2.sects sects = dbh.Db.Queryable<F2.sects>().With(SqlSugar.SqlWith.HoldLock).InSingle(sectMember.sectId);
+                if (sects.remain_dimension_boss_hp > val)
+                {
+                    sects.remain_dimension_boss_hp -= damage.damage;
+                    dbh.Db.Updateable(sects).UpdateColumns(ii => ii.remain_dimension_boss_hp).ExecuteCommand();
+                }
+                else
+                {
+                    //killed
+                    sects.remain_dimension_boss_hp = 0;
+                    dbh.Db.Updateable(sects).UpdateColumns(ii => ii.remain_dimension_boss_hp).ExecuteCommand();
+
+                    F2.sectDimensionBossAward award = new F2.sectDimensionBossAward();
+                    award.bossLevel = sects.remain_dimension_boss_Level;
+                    award.sect_coin = sects.remain_dimension_boss_Level * 1000;
+                    award.playerId = sectMember.playerId;
+                    //所有打过的都能获得
+                    var dmglst = dbh.Db.Queryable<F2.sectDimensionDamage>().Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
+                    foreach (var item in dmglst)
+                    {
+                        award.playerId = item;
+                        dbh.Db.Insertable(award).ExecuteCommand();
+                    }
+                    //sects.boss_level++;
+                    //sects.boss_HP = 10000000 * sects.boss_level;
+                    //dbh.Db.Updateable(sects).UpdateColumns(ii => new{ii.boss_HP,ii.boss_level}).ExecuteCommand();
+                    //dbh.Db.Deleteable<F2.sectDimensionDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
+                }
+                dbh.Db.CommitTran();
+            }
+            catch (Exception)
+            {
+
+                dbh.Db.RollbackTran();
+            }
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 94;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/dimension_damage_list")]
+        public JObject dimension_damage_list([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            long val = value["val"].AsLong();
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            var dbh = DbContext.Get();
+
+            var dmglst = dbh.Db.Queryable<F2.sectDimensionDamage>().Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).ToList();
+            var list = new JArray();
+            foreach (var item in dmglst)
+            {
+                var a = new JObject();
+                a["damage"] = item.damage;
+                a["player_name"] = item.playerName;
+                a["position_level"] = item.position_level;
+                a["uuid"] = item.playerUuid;
+                list.Add(a);
+            }
+            ResObj["data"] = list;
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 95;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/dimension_reward_list")]
+        public JObject dimension_reward_list([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.sect_member sectMember = updateSectInfo(account);
+            var awards = dbh.Db.Queryable<F2.sectDimensionBossAward>().Where(ii => ii.playerId == account.id).ToList();
+            var list = new JArray();
+            foreach (var item in awards)
+            {
+                list.Add(new JObject(
+                  new JProperty("current_dimension_door", item.bossLevel),
+                  new JProperty("position_level", sectMember.position_level),
+                  new JProperty("sect_coin", item.sect_coin),
+                  new JProperty("time", DateTime.Now.AsTimestamp())
+                  ));
+            }
+            ResObj["data"] = list;
+            ResObj["code"] = 0;
+            ResObj["type"] = 97;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/dimension_reward")]
+        public JObject dimension_reward([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            int bosslevel = value["boss_level"].AsInt();
+            var awardItem = dbh.Db.Queryable<F2.sectDimensionBossAward>().Where(ii => ii.playerId == account.id).First();
+            if (awardItem == null)
+            {
+                ResObj["message"] = "没有可领取的物品";
+                return ResObj;
+            }
+            F2.sect_member sectMember = updateSectInfo(account);
+            dbh.Db.Deleteable<F2.sectDimensionBossAward>().In(awardItem.id).ExecuteCommand();
+            sectMember.sect_coin += awardItem.sect_coin;
+            dbh.Db.Updateable(sectMember).UpdateColumns(ii => ii.sect_coin).ExecuteCommand();
+            var awards = dbh.Db.Queryable<F2.sectDimensionBossAward>().Where(ii => ii.playerId == account.id).ToList();
+            var list = new JArray();
+            foreach (var item in awards)
+            {
+                list.Add(new JObject(
+                new JProperty("current_dimension_door", item.bossLevel),
+                new JProperty("position_level", sectMember.position_level),
+                new JProperty("sect_coin", item.sect_coin),
+                new JProperty("time", DateTime.Now.AsTimestamp())
+                ));
+            }
+            ResObj["data"] = list;
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 98;
+            return ResObj;
+        }
+        #endregion 次元门
     }
 }

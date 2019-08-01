@@ -29,6 +29,8 @@ namespace MakC.Data.Model
             public string player_zhong_yao { get; set; }
             public DateTime lastLoginTime { get; set; }
             public bool isAndroid { get; set; }
+            public int jiaTa { get; set; }
+            public int ShenMu { get; set; }
         }
 
         [SugarTable("setting")]
@@ -110,6 +112,9 @@ namespace MakC.Data.Model
             public int donate { get; set; }
             public int contribution { get; set; }
             public long boss_HP { get; set; }
+            public long remain_dimension_boss_hp { get; set; }
+            public int remain_dimension_boss_Level { get; set; }
+            public string remain_dimension_boss_skill { get; set; }
         }
         [SugarTable("sect_member")]
         public class sect_member
@@ -213,6 +218,36 @@ namespace MakC.Data.Model
             public string uuid { get; set; }
             public string itemData { get; set; }
             public DateTime create_at { get; set; }
+        }
+
+        [SugarTable("sectdimensiondamage")]
+        public class sectDimensionDamage
+        {
+            public sectDimensionDamage()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int sectid { get; set; }
+            public long damage { get; set; }
+            public string playerName { get; set; }
+            public int position_level { get; set; }
+            public string playerUuid { get; set; }
+            public int playerId { get; set; }
+        }
+        [SugarTable("sectdimensionbossaward")]
+        public class sectDimensionBossAward
+        {
+            public sectDimensionBossAward()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int bossLevel { get; set; }
+            public int playerId { get; set; }
+            public int sect_coin { get; set; }
         }
     }
 
