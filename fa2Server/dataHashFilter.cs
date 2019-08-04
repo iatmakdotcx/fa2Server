@@ -180,6 +180,10 @@ namespace fa2Server
                 {
                     return "密码错误";
                 }
+                if (account.isBan)
+                {
+                    return "你的存档数据已损坏！";
+                }
             }
             else
             {
@@ -192,6 +196,10 @@ namespace fa2Server
                 if (account.token != data["token"]?.ToString())
                 {
                     return "账号已在其它地方登录";
+                }
+                if (account.isBan)
+                {
+                    return "你的存档数据已损坏！";
                 }
                 if (data["net_id"] != null)
                 {

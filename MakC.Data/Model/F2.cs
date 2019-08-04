@@ -31,6 +31,8 @@ namespace MakC.Data.Model
             public bool isAndroid { get; set; }
             public int jiaTa { get; set; }
             public int ShenMu { get; set; }
+            public string cheatMsg { get; set; }
+            public bool isBan { get; set; }
         }
 
         [SugarTable("setting")]
