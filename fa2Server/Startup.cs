@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using fa2Server.Controllers;
 using log4net;
 using log4net.Config;
 using log4net.Repository;
@@ -14,6 +16,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Quartz;
+using Quartz.Impl;
 
 namespace fa2Server
 {
@@ -26,6 +30,7 @@ namespace fa2Server
             Repository = LogManager.CreateRepository(Configuration["Logging:Log4Net:Name"]);
             //指定配置文件，如果这里你遇到问题，应该是使用了InProcess模式，请查看.csproj,并删之
             XmlConfigurator.Configure(Repository, new FileInfo("log4net.config"));
+            CreateJobAsync();
         }
 
         public IConfiguration Configuration { get; }
@@ -55,6 +60,37 @@ namespace fa2Server
 
             //app.UseHttpsRedirection();
             app.UseMvc();
+        }
+        private async static void CreateJobAsync()
+        {
+            var props = new NameValueCollection
+            {
+                { "quartz.serializer.type", "binary" }
+            };
+            var factory = new StdSchedulerFactory(props);
+            var sched = await factory.GetScheduler();
+            await sched.Start();
+            var job = JobBuilder.Create<MyJob>()
+                .WithIdentity("myJob", "group1")
+                .Build();
+            var trigger = TriggerBuilder.Create()
+                .WithIdentity("myTrigger", "group1")
+                .StartNow()
+                .WithCronSchedule("0 0 0 * * ? *")
+            .Build();
+            await sched.ScheduleJob(job, trigger);
+        }
+    }
+    public class MyJob : IJob
+    {
+        private ILog log = LogManager.GetLogger(Startup.Repository.Name, "MyJob");
+        public Task Execute(IJobExecutionContext context)
+        {
+            return Task.Run(() =>
+            {
+                log.Info("new day job");
+                GameServerController.NewDay();
+            });
         }
     }
 }
