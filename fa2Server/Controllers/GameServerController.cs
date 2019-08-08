@@ -431,18 +431,28 @@ namespace fa2Server.Controllers
             {
                 player_data["playerDict"]["playerId"] = "G:00000000003";
             }
-            if (player_data["playerDict"]["scslLv"]!=null)
+            if (player_data["playerDict"]["scslLv"] != null)
             {
                 //修改塔的层数
                 player_data["playerDict"]["scslLv"] = player_data["playerDict"]["scslLv"].AsInt() + account.jiaTa;
                 account.jiaTa = 0;
             }
-            if (player_data["playerDict"]["smTGLV"] !=null)
+            if (player_data["playerDict"]["smTGLV"] != null)
             {
                 //修改神墓的层数
                 player_data["playerDict"]["smTGLV"] = player_data["playerDict"]["smTGLV"].AsInt() + account.ShenMu;
                 account.ShenMu = 0;
             }
+
+            //修复firstplayTime（天数太少，装备太好导致秘境闪退
+            if (player_data["playerDict"]["firstPlayTime"] != null)
+            {
+                if (player_data["playerDict"]["firstPlayTime"].AsLong()> 1504483658)
+                {
+                    player_data["playerDict"]["firstPlayTime"] = "1504483658";
+                }
+            }
+
             account.lastLoginTime = DateTime.Now;
             account.player_data = player_data.ToString(Formatting.None);
             if (dbh.Db.Updateable(account).ExecuteCommand() == 0)
