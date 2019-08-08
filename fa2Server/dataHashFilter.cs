@@ -55,7 +55,7 @@ namespace fa2Server
 
                     if (!checkReqSign(context, RequestBody))
                     {
-                        ErrorMessage = "参数错误";
+                        ErrorMessage = "参数错误.";
                         return;
                     }
                     ErrorMessage = checkUserInfo(context, RequestBody);
@@ -133,6 +133,8 @@ namespace fa2Server
             string Req_ServerTime = context.Request.Headers["Server-Time"].ToString();
             if (string.IsNullOrEmpty(Req_sign) || string.IsNullOrEmpty(Req_ServerTime))
             {
+                ILog log = LogManager.GetLogger(Startup.Repository.Name, "checkReqSign");
+                log.Error($"checkReqSign null {Req_sign} ------  {Req_ServerTime}");
                 return false;
             }
             string TmpSign;

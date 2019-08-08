@@ -21,11 +21,11 @@ namespace fa2Server.Controllers
         private ILog log = LogManager.GetLogger(Startup.Repository.Name, "GameServerController");
         long[] EXPLEVEL = new long[] { 0, 100, 300, 600, 1000, 1700, 3000, 5000, 8000, 12000, 17000, 25000, 35000, 50000, 70000, 100000, 150000, 220000, 320000, 450000, 600000, 800000, 1010000, 1220000, 1470000, 1730000, 2000000, 2280000, 2570000, 2870000, 3180000, 3500000, 4000000, 4600000, 5300000, 6100000, 7000000, 8000000, 9000000, 10000000, 12000000, 14000000, 16000000, 18000000, 20000000, 22000000, 24000000, 26000000, 28000000, 30000000, 31400000, 32800000, 34200000, 35600000, 37000000, 38400000, 39800000, 41200000, 42600000, 44000000, 45400000, 46800000, 48200000, 49600000, 51000000, 52400000, 53800000, 55200000, 56600000, 58000000, 59400000, 60800000, 62200000, 63600000, 65000000, 66400000, 67800000, 69200000, 70600000, 72000000, 73400000, 74800000, 76200000, 77600000, 79000000, 80400000, 81800000, 83200000, 84600000, 86000000, 87400000, 88800000, 90200000, 91600000, 93000000, 94400000, 95800000, 97200000, 98600000, 100000000, 124081000, 148162000, 172243000, 196324000, 220405000, 244486000, 268567000, 292648000, 316729000, 340810000, 364891000, 388972000, 413053000, 437134000, 461215000, 485296000, 509377000, 533458000, 557539000, 581620000, 605701000, 629782000, 653863000, 677944000, 702025000, 726106000, 750187000, 774268000, 798349000, 822430000, 846511000, 870592000, 894673000, 918754000, 942835000, 966916000, 990997000, 1015078000, 1039159000, 1063240000, 1087321000, 1111402000, 1135483000, 1159564000, 1183645000, 1207726000, 1231807000, 1255888000, 1279969000, 1304050000, 1328131000, 1352212000, 1376293000, 1400374000, 1424455000, 1448536000, 1472617000, 1496698000, 1520779000, 1544860000, 1568941000, 1593022000, 1617103000, 1641184000, 1665265000, 1689346000, 1713427000, 1737508000, 1761589000, 1785670000, 1809751000, 1833832000, 1857913000, 1881994000, 1906075000, 1930156000, 1954237000, 1978318000, 2002399000, 2026480000, 2050561000, 2074642000, 2098723000, 2122804000, 2146885000, 2170966000, 2195047000, 2219128000, 2243209000, 2267290000, 2291371000, 2315452000, 2339533000, 2363614000, 2387695000, 2411776000, 2435857000, 2459938000, 2484019000, 2508100000, 2541900000, 2575700000, 2609500000, 2643300000, 2677100000, 2710900000, 2744700000, 2778500000, 2812300000, 2846100000, 2879900000, 2913700000, 2947500000, 2981300000, 3015100000, 3048900000, 3082700000, 3116500000, 3150300000, 3184100000, 3217900000, 3251700000, 3285500000, 3319300000, 3353100000, 3386900000, 3420700000, 3454500000, 3488300000, 3522100000, 3555900000, 3589700000, 3623500000, 3657300000, 3691100000, 3724900000, 3758700000, 3792500000, 3826300000, 3860100000, 3893900000, 3927700000, 3961500000, 3995300000, 4029100000, 4062900000, 4096700000, 4130500000, 4164300000, 4198100000, 4231900000, 4265700000, 4299500000, 4333300000, 4367100000, 4400900000, 4434700000, 4468500000, 4502300000, 4536100000, 4569900000, 4603700000, 4637500000, 4671300000, 4705100000, 4738900000, 4772700000, 4806500000, 4840300000, 4874100000, 4907900000, 4941700000, 4975500000, 5009300000, 5043100000, 5076900000, 5110700000, 5144500000, 5178300000, 5212100000, 5245900000, 5279700000, 5313500000, 5347300000, 5381100000, 5414900000, 5448700000, 5482500000, 5516300000, 5550100000, 5583900000, 5617700000, 5651500000, 5685300000, 5719100000, 5752900000, 5786700000, 5820500000, 5854300000, 5888100000, 5942700000, 5997300000, 6051900000, 6106500000, 6161100000, 6215700000, 6270300000, 6324900000, 6379500000, 6434100000, 6488700000, 6543300000, 6597900000, 6652500000, 6707100000, 6761700000, 6816300000, 6870900000, 6925500000, 6980100000, 7034700000, 7089300000, 7143900000, 7198500000, 7253100000, 7307700000, 7362300000, 7416900000, 7471500000, 7526100000, 7580700000, 7635300000, 7689900000, 7744500000, 7799100000, 7853700000, 7908300000, 7962900000, 8017500000, 8072100000, 8126700000, 8181300000, 8235900000, 8290500000, 8345100000, 8399700000, 8454300000, 8508900000, 8563500000, 8618100000, 8672700000, 8727300000, 8781900000, 8836500000, 8891100000, 8945700000, 9000300000, 9054900000, 9109500000, 9164100000, 9218700000, 9273300000, 9327900000, 9382500000, 9437100000, 9491700000, 9546300000, 9600900000, 9655500000, 9710100000, 9764700000, 9819300000, 9873900000, 9928500000, 9983100000, 10037700000, 10092300000, 10146900000, 10201500000, 10256100000, 10310700000, 10365300000, 10419900000, 10474500000, 10529100000, 10583700000, 10638300000, 10692900000, 10747500000, 10802100000, 10856700000, 10911300000, 10965900000, 11020500000, 11075100000, 11129700000, 11184300000, 11238900000, 11293500000, 11348100000, 11426100000, 11504100000, 11582100000, 11660100000, 11738100000, 11816100000, 11894100000, 11972100000, 12050100000, 12128100000, 12206100000, 12284100000, 12362100000, 12440100000, 12518100000, 12596100000, 12674100000, 12752100000, 12830100000, 12908100000, 12986100000, 13064100000, 13142100000, 13220100000, 13298100000, 13376100000, 13454100000, 13532100000, 13610100000, 13688100000, 13766100000, 13844100000, 13922100000, 14000100000, 14078100000, 14156100000, 14234100000, 14312100000, 14390100000, 14468100000, 14546100000, 14624100000, 14702100000, 14780100000, 14858100000, 14936100000, 15014100000, 15092100000, 15170100000, 15248100000, 15326100000, 15404100000, 15482100000, 15560100000, 15638100000, 15716100000, 15794100000, 15872100000, 15950100000, 16028100000, 16106100000, 16184100000, 16262100000, 16340100000, 16418100000, 16496100000, 16574100000, 16652100000, 16730100000, 16808100000, 16886100000, 16964100000, 17042100000, 17120100000, 17198100000, 17276100000, 17354100000, 17432100000, 17510100000, 17588100000, 17666100000, 17744100000, 17822100000, 17900100000, 17978100000, 18056100000, 18134100000, 18212100000, 18290100000, 18368100000, 18446100000, 18524100000, 18602100000, 18680100000, 18758100000, 18836100000, 18914100000, 18992100000, 19070100000, 19148100000, 19252100000, 19356100000, 19460100000, 19564100000, 19668100000, 19772100000, 19876100000, 19980100000, 20084100000, 20188100000, 20292100000, 20396100000, 20500100000, 20604100000, 20708100000, 20812100000, 20916100000, 21020100000, 21124100000, 21228100000, 21332100000, 21436100000, 21540100000, 21644100000, 21748100000, 21852100000, 21956100000, 22060100000, 22164100000, 22268100000, 22372100000, 22476100000, 22580100000, 22684100000, 22788100000, 22892100000, 22996100000, 23100100000, 23204100000, 23308100000, 23412100000, 23516100000, 23620100000, 23724100000, 23828100000, 23932100000, 24036100000, 24140100000, 24244100000, 24348100000, 24452100000, 24556100000, 24660100000, 24764100000, 24868100000, 24972100000, 25076100000, 25180100000, 25284100000, 25388100000, 25492100000, 25596100000, 25700100000, 25804100000, 25908100000, 26012100000, 26116100000, 26220100000, 26324100000, 26428100000, 26532100000, 26636100000, 26740100000, 26844100000, 26948100000, 27052100000, 27156100000, 27260100000, 27364100000, 27468100000, 27572100000, 27676100000, 27780100000, 27884100000, 27988100000, 28092100000, 28196100000, 28300100000, 28404100000, 28508100000, 28612100000, 28716100000, 28820100000, 28924100000, 29028100000, 29132100000, 29236100000, 29340100000, 29444100000, 29548100000, 29680700000, 29813300000, 29945900000, 30078500000, 30211100000, 30343700000, 30476300000, 30608900000, 30741500000, 30874100000, 31006700000, 31139300000, 31271900000, 31404500000, 31537100000, 31669700000, 31802300000, 31934900000, 32067500000, 32200100000, 32332700000, 32465300000, 32597900000, 32730500000, 32863100000, 32995700000, 33128300000, 33260900000, 33393500000, 33526100000, 33658700000, 33791300000, 33923900000, 34056500000, 34189100000, 34321700000, 34454300000, 34586900000, 34719500000, 34852100000, 34984700000, 35117300000, 35249900000, 35382500000, 35515100000, 35647700000, 35780300000, 35912900000, 36045500000, 36178100000, 36310700000, 36443300000, 36575900000, 36708500000, 36841100000, 36973700000, 37106300000, 37238900000, 37371500000, 37504100000, 37636700000, 37769300000, 37901900000, 38034500000, 38167100000, 38299700000, 38432300000, 38564900000, 38697500000, 38830100000, 38962700000, 39095300000, 39227900000, 39360500000, 39493100000, 39625700000, 39758300000, 39890900000, 40023500000, 40156100000, 40288700000, 40421300000, 40553900000, 40686500000, 40819100000, 40951700000, 41084300000, 41216900000, 41349500000, 41482100000, 41614700000, 41747300000, 41879900000, 42012500000, 42145100000, 42277700000, 42410300000, 42542900000, 42675500000, 42808100000, 42971900000, 43135700000, 43299500000, 43463300000, 43627100000, 43790900000, 43954700000, 44118500000, 44282300000, 44446100000, 44609900000, 44773700000, 44937500000, 45101300000, 45265100000, 45428900000, 45592700000, 45756500000, 45920300000, 46084100000, 46247900000, 46411700000, 46575500000, 46739300000, 46903100000, 47066900000, 47230700000, 47394500000, 47558300000, 47722100000, 47885900000, 48049700000, 48213500000, 48377300000, 48541100000, 48704900000, 48868700000, 49032500000, 49196300000, 49360100000, 49523900000, 49687700000, 49851500000, 50015300000, 50179100000, 50342900000, 50506700000, 50670500000, 50834300000, 50998100000, 51161900000, 51325700000, 51489500000, 51653300000, 51817100000, 51980900000, 52144700000, 52308500000, 52472300000, 52636100000, 52799900000, 52963700000, 53127500000, 53291300000, 53455100000, 53618900000, 53782700000, 53946500000, 54110300000, 54274100000, 54437900000, 54601700000, 54765500000, 54929300000, 55093100000, 55256900000, 55420700000, 55584500000, 55748300000, 55912100000, 56075900000, 56239700000, 56403500000, 56567300000, 56731100000, 56894900000, 57058700000, 57222500000, 57386300000, 57550100000, 57713900000, 57877700000, 58041500000, 58205300000, 58369100000, 58532900000, 58696700000, 58860500000, 59024300000, 59188100000, 59385700000, 59583300000, 59780900000, 59978500000, 60176100000, 60373700000, 60571300000, 60768900000, 60966500000, 61164100000, 61361700000, 61559300000, 61756900000, 61954500000, 62152100000, 62349700000, 62547300000, 62744900000, 62942500000, 63140100000, 63337700000, 63535300000, 63732900000, 63930500000, 64128100000, 64325700000, 64523300000, 64720900000, 64918500000, 65116100000, 65313700000, 65511300000, 65708900000, 65906500000, 66104100000, 66301700000, 66499300000, 66696900000, 66894500000, 67092100000, 67289700000, 67487300000, 67684900000, 67882500000, 68080100000, 68277700000, 68475300000, 68672900000, 68870500000, 69068100000, 69265700000, 69463300000, 69660900000, 69858500000, 70056100000, 70253700000, 70451300000, 70648900000, 70846500000, 71044100000, 71241700000, 71439300000, 71636900000, 71834500000, 72032100000, 72229700000, 72427300000, 72624900000, 72822500000, 73020100000, 73217700000, 73415300000, 73612900000, 73810500000, 74008100000, 74205700000, 74403300000, 74600900000, 74798500000, 74996100000, 75193700000, 75391300000, 75588900000, 75786500000, 75984100000, 76181700000, 76379300000, 76576900000, 76774500000, 76972100000, 77169700000, 77367300000, 77564900000, 77762500000, 77960100000, 78157700000, 78355300000, 78552900000, 78750500000, 78948100000, 79182100000, 79416100000, 79650100000, 79884100000, 80118100000, 80352100000, 80586100000, 80820100000, 81054100000, 81288100000, 81522100000, 81756100000, 81990100000, 82224100000, 82458100000, 82692100000, 82926100000, 83160100000, 83394100000, 83628100000, 83862100000, 84096100000, 84330100000, 84564100000, 84798100000, 85032100000, 85266100000, 85500100000, 85734100000, 85968100000, 86202100000, 86436100000, 86670100000, 86904100000, 87138100000, 87372100000, 87606100000, 87840100000, 88074100000, 88308100000, 88542100000, 88776100000, 89010100000, 89244100000, 89478100000, 89712100000, 89946100000, 90180100000, 90414100000, 90648100000, 90882100000, 91116100000, 91350100000, 91584100000, 91818100000, 92052100000, 92286100000, 92520100000, 92754100000, 92988100000, 93222100000, 93456100000, 93690100000, 93924100000, 94158100000, 94392100000, 94626100000, 94860100000, 95094100000, 95328100000, 95562100000, 95796100000, 96030100000, 96264100000, 96498100000, 96732100000, 96966100000, 97200100000, 97434100000, 97668100000, 97902100000, 98136100000, 98370100000, 98604100000, 98838100000, 99072100000, 99306100000, 99540100000, 99774100000, 100008100000, 100242100000, 100476100000, 100710100000, 100944100000, 101178100000, 101412100000, 101646100000, 101880100000, 102114100000, 102348100000 };
         long[] VIP_EXPLEVEL = new long[] { 0, 1500, 5000, 15000, 30000, 50000, 100000, 150000, 300000, 450000, 750000, 1200000, 1800000, 2800000, 4000000, 6500000, 10000000 };
+        private static object locker = new object();
         private F2.user getUserFromCache()
         {
             return MemoryCacheService.Default.GetCache<F2.user>("account_" + HttpContext.TraceIdentifier) ?? throw new Exception("用户信息已过期？？？？？？？？");
         }
-
         private int GetExpLevel(long exp)
         {
             for (int i = EXPLEVEL.Length-1; i >= 0 ; i--)
@@ -78,6 +78,39 @@ namespace fa2Server.Controllers
             }
             dbh.Db.Updateable<F2.sects>(new F2.sects() { leader_name = sectMember.playerName }).UpdateColumns(ii => ii.leader_name).Where(ii => ii.leader_uuid == sectMember.playerUuid).ExecuteCommand();
             return sectMember;
+        }
+        private JArray GenMi_jing_enemy(F2.mi_jing mi_Jing)
+        {
+            JArray ResObj = new JArray();
+            var r = new Random();
+
+            ResObj.Add(new JObject(
+                new JProperty("level", r.Next(1, 100)),
+                new JProperty("playerDict", new JObject()),
+                new JProperty("type", "0")
+            ));
+            ResObj.Add(new JObject(
+                new JProperty("level", r.Next(50, 201)),
+                new JProperty("playerDict", new JObject()),
+                new JProperty("type", "1")
+            ));
+            F2.mi_jing enemyMi = rankingsData[new Random().Next(0, rankingsData.Count)];
+            ResObj.Add(new JObject(
+                new JProperty("level", r.Next(2000, 5001)),
+                new JProperty("playerDict", new JObject(
+                    new JProperty("FirstRoleID", enemyMi.FirstRoleID),
+                    new JProperty("JJCRoles", enemyMi.JJCRoles),
+                    new JProperty("playerlv", enemyMi.playerLv),
+                    new JProperty("playerName", enemyMi.playerName),
+                    new JProperty("id", enemyMi.id),
+                    new JProperty("zfDict", enemyMi.zfDict)
+                    )),
+                new JProperty("jjcJF", mi_Jing.point),
+                new JProperty("type", "2")
+            ));
+            mi_Jing.enemyData = ResObj.ToString(Formatting.None);
+            DbContext.Get().Db.Updateable(mi_Jing).UpdateColumns(ii => ii.enemyData).ExecuteCommand();                
+            return ResObj;
         }
         private bool compareJsonObj(JToken data1, JToken data2)
         {
@@ -273,7 +306,7 @@ namespace fa2Server.Controllers
                 }
             }
         }
-        private static void NewDay()
+        public static void NewDay()
         {
             var dbh = DbContext.Get();
             dbh.Db.Updateable<F2.sects>(new F2.sects() { donate = 0 }).UpdateColumns(ii => ii.donate).Where(ii=>ii.id>0).ExecuteCommand();
@@ -285,6 +318,62 @@ namespace fa2Server.Controllers
             NewDay();
             return "ok";
         }
+        [Route("ctl/clearcache")]
+        public string ctl_clearcache()
+        {
+            CacheHelper.clearCache();
+            return "ok";
+        }
+        [Route("ctl/relra")]
+        public string ctl_reloadrankingsData()
+        {
+            lock (locker)
+            {
+                var dbh = DbContext.Get();
+                rankingsData = dbh.GetEntityDB<F2.mi_jing>().GetList(ii => ii.isRobot || ii.isbm);
+                sect_rankingsData = dbh.GetEntityDB<F2.sects>().GetList();
+            }
+            return "ok";
+        }
+        [Route("ctl/mj/{id=0}")]
+        public string ctl_mj_0(int id)
+        {
+            //0未开启。1报名中，2开战中，3结算中
+            lock (locker)
+            {
+                var dbh = DbContext.Get();
+                dbh.Db.Updateable<F2.setting>(new F2.setting() { mi_jing_state = id })
+                    .UpdateColumns(ii => ii.mi_jing_state)
+                    .Where(ii => ii.id > 0).ExecuteCommand();
+                if (id == 0)
+                {
+                    dbh.Db.Updateable<F2.mi_jing>(new F2.mi_jing() { leftnum = 0, point = 0, Logs = "", isbm = false, enemyData = "" })
+                    .UpdateColumns(ii => new { ii.leftnum, ii.point, ii.Logs, ii.isbm, ii.enemyData })
+                    .Where(ii => !ii.isRobot).ExecuteCommand();
+
+                    dbh.Db.Updateable<F2.sects>(new F2.sects() { mi_jing_point = 0 })
+                   .UpdateColumns(ii => ii.mi_jing_point)
+                   .Where(ii => ii.id > 0).ExecuteCommand();
+                }
+                else if (id == 1)
+                {
+                   
+                }
+                if (id == 2)
+                {
+                    dbh.Db.Updateable<F2.mi_jing>(new F2.mi_jing() { leftnum = 20 })
+                    .UpdateColumns(ii => ii.leftnum)
+                    .Where(ii => ii.isbm && !ii.isRobot).ExecuteCommand();
+                }
+                CacheHelper.clearCache();
+            }
+            return "ok";
+        }
+
+
+
+
+
 
         [HttpPost("v1/check_code")]
         public string check_code([FromBody] JObject value)
@@ -327,7 +416,7 @@ namespace fa2Server.Controllers
                 account.uuid = Guid.NewGuid().ToString();
                 account.userdata = "{}";
                 account.isAndroid = HttpContext.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1;
-                var setting = CahceHelper.GetDBSetting(account.isAndroid);
+                var setting = CacheHelper.GetDBSetting(account.isAndroid);
                 account.player_data = setting.base_playerData;
                 account.player_zhong_yao = setting.base_playerzhongyao;
                 account.shl = 1000;
@@ -379,7 +468,7 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 3;
             F2.user account = getUserFromCache();
-            F2.setting setting = CahceHelper.GetDBSetting(account.isAndroid);
+            F2.setting setting = CacheHelper.GetDBSetting(account.isAndroid);
             var fscq = new JObject();
             fscq["id"] = setting.id;
             fscq["CHONGZHI"] = (JToken)JsonConvert.DeserializeObject(setting.CHONGZHI);
@@ -2431,33 +2520,6 @@ namespace fa2Server.Controllers
 
         #endregion BOSS
 
-        #region 秘境
-
-        [HttpPost("api/v3/mi_jings/info")]
-        public JObject mi_jings_info([FromBody] JObject value)
-        {
-            JObject ResObj = new JObject();
-            ResObj["code"] = 1;
-            ResObj["type"] = 1;
-            F2.user account = getUserFromCache();
-
-
-            //ResObj["data"] = new JObject(
-            //    new JProperty("isbm", sect.isbm), 
-            //    new JProperty("leftnum", sect.leftnum), 
-            //    new JProperty("mi_jing",new JArray()), 
-            //    new JProperty("owner_point", sect.owner_point), 
-            //    new JProperty("owner_ranking", sect.owner_ranking), 
-            //    new JProperty("sect_point", sect.sect_point), 
-            //    new JProperty("sect_ranking", sect.sect_ranking)
-            //);
-
-            //ResObj["code"] = 0;
-            //ResObj["type"] = 78;
-            return ResObj;
-        }
-
-        #endregion 秘境
         #region 次元门
         private static List<int> dimensionBossSkills = new List<int>() {
            172, 180,182,183
@@ -2726,6 +2788,569 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         #endregion 次元门
+        #region 秘境
+        /// <summary>
+        /// 秘境信息
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/info")]
+        public JObject mi_jings_info([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.sectId == 0)
+            {
+                ResObj["message"] = "未加入宗门";
+                return ResObj;
+            }
+            F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sectMember.sectId);
+            if (sect == null)
+            {
+                ResObj["message"] = "未加入宗门";
+                return ResObj;
+            }
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            if (mjInfo == null)
+            {
+                mjInfo = new F2.mi_jing();
+                mjInfo.playerId = account.id;
+                mjInfo.playerUuid = account.uuid;
+                mjInfo.sect_id = sectMember.sectId;
+                dbh.Db.Insertable(mjInfo).ExecuteCommand();
+            }
+            else if (mjInfo.sect_id != sectMember.sectId)
+            {
+                mjInfo.sect_id = sectMember.sectId;
+                dbh.Db.Updateable(mjInfo).UpdateColumns(ii => ii.sect_id).ExecuteCommand();
+            }
+            int owner_point = 0;
+            int person_ranking = 0;
+            int sect_point = 0;
+            int sect_ranking = 0;
+            lock (sect_rankingsData)
+            {
+                var q = from x in sect_rankingsData orderby x.mi_jing_point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.id == sectMember.sectId)
+                    {
+                        sect_ranking = i + 1;
+                        sect_point = item.mi_jing_point;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            lock (rankingsData)
+            {
+                var q = from x in rankingsData orderby x.point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.playerId == account.id)
+                    {
+                        person_ranking = i + 1;
+                        owner_point = item.point;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            ResObj["data"] = new JObject(
+                new JProperty("isbm", mjInfo.isbm?1:0),
+                new JProperty("leftnum", mjInfo.leftnum),
+                new JProperty("mi_jing", string.IsNullOrEmpty(mjInfo.enemyData)? new JArray():((JArray)JsonConvert.DeserializeObject(mjInfo.enemyData))),
+                new JProperty("owner_point", owner_point),
+                new JProperty("owner_ranking", person_ranking),
+                new JProperty("sect_point", sect_point),
+                new JProperty("sect_ranking", sect_ranking)
+            );
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 78;
+            return ResObj;
+        }
+        /// <summary>
+        /// 秘境报名
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jing_zhen_rongs")]
+        public JObject mi_jing_zhen_rongs([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.setting setting = CacheHelper.GetDBSetting(account.isAndroid);
+            if (setting.mi_jing_state == 0)
+            {
+                ResObj["message"] = "秘境未开启";
+                return ResObj;
+            }
+            else if (setting.mi_jing_state != 1)
+            {
+                ResObj["message"] = "报名时间已过";
+                return ResObj;
+            }
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            mjInfo.FirstRoleID = value["FirstRoleID"].AsInt();
+            mjInfo.JJCRoles = value["JJCRoles"].ToString(Formatting.None);
+            mjInfo.zfDict = value["zfDict"].ToString(Formatting.None);
+            mjInfo.playerLv = value["playerlv"].AsInt();
+            mjInfo.playerName = value["playerName"].ToString();
+            mjInfo.playerUuid = value["uuid"].ToString();
+            mjInfo.playerHYJF = value["HYJF"].AsInt();
+            mjInfo.isbm = true;
+            mjInfo.point = 0;
+            mjInfo.leftnum = 0;
+            dbh.Db.Updateable(mjInfo).ExecuteCommand();
+
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 72;
+            return ResObj;
+        }
+        /// <summary>
+        /// 秘境奖励浏览
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/reward_info")]
+        public JObject mi_jing_reward_info([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            ResObj["data"] = CacheHelper.Get_Mi_jing_reward_info();
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 84;
+            return ResObj;
+        }
+        /// <summary>
+        /// 秘境日志
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/mi_jing_logs")]
+        public JObject mi_jing_logs([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            var tmpArr = new JArray();
+            if (!string.IsNullOrEmpty(mjInfo.Logs))
+            {
+                var s = mjInfo.Logs.Split("|");
+                foreach (var item in s)
+                {
+                    if (!string.IsNullOrEmpty(item))
+                    {
+                        tmpArr.Add(item);
+                    }
+                }
+            }
+            ResObj["data"] = tmpArr;
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 82;
+            return ResObj;
+        }
+        /// <summary>
+        /// 进入秘境（报名完成后参战）
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/explore")]
+        public JObject mi_jing_explore([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();            
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            if (!mjInfo.isbm)
+            {
+                ResObj["message"] = "你未报名秘境";
+                return ResObj;
+            }
+            if (CacheHelper.GetDBSetting(account.isAndroid).mi_jing_state != 2)
+            {
+                ResObj["message"] = "挑战时间未到";
+                return ResObj;
+            }
+
+            if (rankingsData.Count==0)
+            {
+                lock (locker)
+                {
+                    if (rankingsData.Count == 0)
+                    {
+                        rankingsData = dbh.GetEntityDB<F2.mi_jing>().GetList(ii => ii.isRobot || ii.isbm);
+                        sect_rankingsData = dbh.GetEntityDB<F2.sects>().GetList();
+                    }
+                }
+            }
+
+            ResObj["data"] = GenMi_jing_enemy(mjInfo);
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 73;
+            return ResObj;
+        }
+        public static List<F2.mi_jing> rankingsData = new List<F2.mi_jing>();
+        /// <summary>
+        /// 个人排行榜
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/rankings")]
+        public JObject mi_jing_rankings([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            if (!mjInfo.isbm)
+            {
+                ResObj["message"] = "你未报名秘境";
+                return ResObj;
+            }
+            JArray rankings = new JArray();
+            int rankingIdx = 0;
+            lock (rankingsData)
+            {
+                var q = from x in rankingsData orderby x.point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.playerId == account.id)
+                    {
+                        rankingIdx = i + 1;
+                    }
+                    if (rankings.Count < 100)
+                    {
+                        rankings.Add(new JObject(
+                            new JProperty("FirstRoleID", item.FirstRoleID),
+                            new JProperty("HYJF", item.playerHYJF),
+                            new JProperty("jjcJF", item.point),
+                            new JProperty("jjcPM", i + 1),
+                            new JProperty("playerlv", item.playerLv),
+                            new JProperty("playerName", item.playerName),
+                            new JProperty("uuid", item.id)
+                            ));
+                    }
+                    i++;
+                }
+            }
+            JObject owner = new JObject(
+                new JProperty("FirstRoleID", mjInfo.FirstRoleID),
+                new JProperty("HYJF", mjInfo.playerHYJF),
+                new JProperty("jjcJF", mjInfo.point),
+                new JProperty("playerlv", mjInfo.playerLv),
+                new JProperty("playerName", mjInfo.playerName),
+                new JProperty("ranking", rankingIdx)
+            );
+            ResObj["data"] = new JObject(new JProperty("owner", owner), new JProperty("rankings", rankings));
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 79;
+            return ResObj;
+        }
+        public static List<F2.sects> sect_rankingsData = new List<F2.sects>();
+        /// <summary>
+        /// 宗门排行榜
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/sect_rankings")]
+        public JObject mi_jing_sect_rankings([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            if (!mjInfo.isbm)
+            {
+                ResObj["message"] = "你未报名秘境";
+                return ResObj;
+            }
+            F2.sect_member sectMember = updateSectInfo(account);
+            JArray rankings = new JArray();
+            int SectIdx = 0;
+            int SectPoint = 0;
+            lock (sect_rankingsData)
+            {
+                var q = from x in sect_rankingsData orderby x.mi_jing_point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.id == sectMember.sectId)
+                    {
+                        SectIdx = i + 1;
+                        SectPoint = item.mi_jing_point;
+                    }
+                    if (rankings.Count < 100)
+                    {
+                        rankings.Add(new JObject(
+                            new JProperty("id", item.id),
+                            new JProperty("level", item.level),
+                            new JProperty("name", item.name),
+                            new JProperty("point", item.mi_jing_point),
+                            new JProperty("sect_id", item.id)
+                        ));
+                    }
+                    i++;
+                }
+            }
+            JObject owner = new JObject(
+                new JProperty("point", SectPoint),
+                new JProperty("ranking", SectIdx)
+            );
+            ResObj["data"] = new JObject(new JProperty("owner", owner), new JProperty("rankings", rankings));
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 81;
+            return ResObj;
+        }
+        /// <summary>
+        /// 成功挑战秘境
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/challeng_success")]
+        public JObject mi_jing_challeng_success([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            int type = value["type"].AsInt();
+            if (type < 0 || type > 2)
+            {
+                ResObj["message"] = "挑战发生错误";
+                return ResObj;
+            }
+            F2.user account = getUserFromCache();
+            if (CacheHelper.GetDBSetting(account.isAndroid).mi_jing_state != 2)
+            {
+                ResObj["message"] = "挑战时间未到";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            if (string.IsNullOrEmpty(mjInfo.enemyData))
+            {
+                ResObj["message"] = "你未进入秘境";
+                return ResObj;
+            }
+            JArray enemyData = (JArray)JsonConvert.DeserializeObject(mjInfo.enemyData);
+            int jf = 0;
+            switch (type)
+            {
+                case 0: jf = enemyData[0]["level"].AsInt();break;
+                case 1: jf = enemyData[1]["level"].AsInt()*2;break;
+                case 2:
+                    jf = enemyData[2]["level"].AsInt() / 10;
+                    if (jf < 5)
+                    {
+                        jf = 5;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            F2.sect_member sectMember = updateSectInfo(account);
+            //个人列表
+            lock (rankingsData)
+            {
+                var x = rankingsData.Find(ii => ii.playerId == account.id);
+                if (x == null)
+                {
+                    ResObj["message"] = "你未进入秘境";
+                    return ResObj;
+                }
+                x.point += jf;
+            }
+            //宗门列表
+            lock (sect_rankingsData)
+            {
+                var x = sect_rankingsData.Find(ii => ii.id == sectMember.sectId);
+                if (x == null)
+                {
+                    ResObj["message"] = "你未加入宗门";
+                    return ResObj;
+                }
+                x.mi_jing_point += jf;
+            }
+            dbh.Db.BeginTran();
+            try
+            {
+                dbh.Db.Updateable<F2.mi_jing>()
+                    .ReSetValue(ii => ii.point == ii.point + jf)
+                    .ReSetValue(ii => ii.leftnum == ii.leftnum - 1)
+                    .UpdateColumns(ii => new { ii.point, ii.leftnum }).Where(ii => ii.id == mjInfo.id).ExecuteCommand();
+
+                 dbh.Db.Updateable<F2.sects>()
+                    .ReSetValue(ii => ii.mi_jing_point == ii.mi_jing_point + jf)
+                    .UpdateColumns(ii => ii.mi_jing_point).Where(ii => ii.id == sectMember.sectId).ExecuteCommand();
+                if (type == 2)
+                {
+                    //挑战角色，要减去对方的 10%
+                    int iid = enemyData[2]["playerDict"]["id"].AsInt();
+                    var mjd = dbh.GetEntityDB<F2.mi_jing>().GetById(iid);
+                    if (!mjd.isRobot)
+                    {
+                        jf = (int)(mjd.point * 0.1);
+                        var logStr = $"你于{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}被 {sectMember.playerName} 击败，损失积分{jf}";
+
+                        mjd.Logs += "|" + logStr;
+                        dbh.Db.Updateable<F2.mi_jing>(mjd)
+                            .ReSetValue(ii => ii.point == ii.point - jf)
+                            .UpdateColumns(ii => new { ii.point, ii.Logs }).Where(ii => ii.id == iid).ExecuteCommand();
+                    }
+                }
+                dbh.Db.CommitTran();
+            }
+            catch (Exception ex)
+            {
+                dbh.Db.RollbackTran();
+                throw;
+            }
+            int owner_point = 0;
+            int person_ranking = 0;
+            int sect_point = 0;
+            int sect_ranking = 0;
+            lock (sect_rankingsData)
+            {
+                var q = from x in sect_rankingsData orderby x.mi_jing_point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.id == sectMember.sectId)
+                    {
+                        sect_ranking = i + 1;
+                        sect_point = item.mi_jing_point;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            lock (rankingsData)
+            {
+                var q = from x in rankingsData orderby x.point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.playerId == account.id)
+                    {
+                        person_ranking = i + 1;
+                        owner_point = item.point;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            ResObj["data"] = new JObject(
+                new JProperty("info", GenMi_jing_enemy(mjInfo)),
+                new JProperty("leftnum", mjInfo.leftnum-1),
+                new JProperty("owner_point", owner_point),
+                new JProperty("person_ranking", person_ranking),
+                new JProperty("sect_point", sect_point),
+                new JProperty("sect_ranking", sect_ranking)
+                );
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 74;
+            return ResObj;
+        }
+
+        /// <summary>
+        /// 查看秘境角色装备
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [HttpPost("api/v3/mi_jings/detail_info")]
+        public JObject mi_jing_detail_info([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            F2.user account = getUserFromCache();
+            int other_uuid = value["other_uuid"].AsInt();
+            var dbh = DbContext.Get();
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.id == other_uuid);
+
+            ResObj["data"] = new JObject(new JProperty("JJCRoles", mjInfo.JJCRoles), new JProperty("playerName", mjInfo.playerName), new JProperty("zfDict", mjInfo.zfDict));
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 80;
+            return ResObj;
+        }
+
+        [HttpPost("api/v3/mi_jings/get_sect_rewards")]
+        public JObject mi_jing_get_sect_rewards([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            F2.user account = getUserFromCache();
+
+            ResObj["code"] = 1;
+            ResObj["message"] = "当前不能领取奖励";
+            ResObj["type"] = 77;
+            return ResObj;
+        }
+        [HttpPost("api/v3/mi_jings/get_rewards")]
+        public JObject mi_jing_get_rewards([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            F2.user account = getUserFromCache();
+            ResObj["code"] =1 ;
+            ResObj["message"] = "当前不能领取奖励";
+            ResObj["type"] = 76;
+            return ResObj;
+        }
+        [HttpPost("api/v3/mi_jings/sect_info")]
+        public JObject mi_jing_sect_info([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            F2.user account = getUserFromCache();
+            int sect_id = value["sect_id"].AsInt();
+
+            JArray rankings = new JArray();
+            lock (rankingsData)
+            {
+                var q = from x in rankingsData orderby x.point descending select x;
+                foreach (var item in q)
+                {
+                    if (item.sect_id == sect_id)
+                    {
+                        rankings.Add(new JObject(
+                            new JProperty("jjcJF", item.point),
+                            new JProperty("playerlv", item.playerLv),
+                            new JProperty("playerName", item.playerName)
+                            ));
+                    }
+                }
+            }
+
+            ResObj["data"] = rankings;
+            ResObj["code"] = 0;
+            ResObj["message"] = "success";
+            ResObj["type"] = 85;
+            return ResObj;
+        }
+        #endregion 秘境
     }
 
 

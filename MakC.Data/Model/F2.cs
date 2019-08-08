@@ -60,9 +60,13 @@ namespace MakC.Data.Model
             public string SHOUCHONG { get; set; }
             public int TENLOWLV { get; set; }
             public int THLOWLV { get; set; }
-
             public string base_playerData { get; set; }
             public string base_playerzhongyao { get; set; }
+            /// <summary>
+            /// 秘境状态，0未开启。1报名中，2开战中，3结算中
+            /// </summary>
+            public int mi_jing_state { get; set; }
+
         }
         [SugarTable("shops")]
         public class shop
@@ -117,6 +121,7 @@ namespace MakC.Data.Model
             public long remain_dimension_boss_hp { get; set; }
             public int remain_dimension_boss_Level { get; set; }
             public string remain_dimension_boss_skill { get; set; }
+            public int mi_jing_point { get; set; }
         }
         [SugarTable("sect_member")]
         public class sect_member
@@ -250,6 +255,47 @@ namespace MakC.Data.Model
             public int bossLevel { get; set; }
             public int playerId { get; set; }
             public int sect_coin { get; set; }
+        }
+        [SugarTable("mi_jing")]
+        public class mi_jing
+        {
+            public mi_jing()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int playerId { get; set; }
+            public bool isbm { get; set; }
+            public int leftnum { get; set; }
+            public int point { get; set; }
+            public string JJCRoles { get; set; }
+            public string zfDict { get; set; }
+            public int FirstRoleID { get; set; }            
+            public string enemyData { get; set; }
+            public bool isRobot { get; set; }
+            public string playerName { get; set; }
+            public int playerLv { get; set; }
+            public int playerHYJF { get; set; }
+            public string playerUuid { get; set; }
+            public string Logs { get; set; }
+            public int sect_id { get; set; }
+        }
+        [SugarTable("mi_jing_rewards")]
+        public class mi_jing_rewards
+        {
+            public mi_jing_rewards()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int ranking { get; set; }
+            public int end_ranking { get; set; }
+            public int sect_coin { get; set; }
+            public int shl { get; set; }
+            public string content { get; set; }
+            public bool isSect { get; set; }
         }
     }
 
