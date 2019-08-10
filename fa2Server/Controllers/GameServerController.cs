@@ -69,7 +69,8 @@ namespace fa2Server.Controllers
             sectMember.join_time = DateTime.Now;
             if (sectMember.id == 0)
             {
-                sectMember.CanAttackBossCnt = 1;
+                sectMember.CanAttackBossCnt = 10;
+                sectMember.CanAckDimBossCnt = 50;
                 dbh.Db.Insertable(sectMember).ExecuteReturnIdentity();
             }
             else
@@ -310,7 +311,7 @@ namespace fa2Server.Controllers
         {
             var dbh = DbContext.Get();
             dbh.Db.Updateable<F2.sects>(new F2.sects() { donate = 0 }).UpdateColumns(ii => ii.donate).Where(ii=>ii.id>0).ExecuteCommand();
-            dbh.Db.Updateable<F2.sect_member>(new F2.sect_member() { AttackBossCnt = 0, awardCnt = 0, donateCnt = 0 }).UpdateColumns(ii => new { ii.AttackBossCnt, ii.awardCnt , ii.donateCnt }).Where(ii => ii.id > 0).ExecuteCommand();
+            dbh.Db.Updateable<F2.sect_member>(new F2.sect_member() { AttackBossCnt = 0, AckDimBossCnt=0 ,awardCnt = 0, donateCnt = 0 }).UpdateColumns(ii => new { ii.AttackBossCnt, ii.AckDimBossCnt, ii.awardCnt , ii.donateCnt }).Where(ii => ii.id > 0).ExecuteCommand();
         }
         [Route("ctl/newday")]
         public string ctl_newday()
@@ -347,8 +348,8 @@ namespace fa2Server.Controllers
                     .Where(ii => ii.id > 0).ExecuteCommand();
                 if (id == 0)
                 {
-                    dbh.Db.Updateable<F2.mi_jing>(new F2.mi_jing() { leftnum = 0, point = 0, Logs = "", isbm = false, enemyData = "" })
-                    .UpdateColumns(ii => new { ii.leftnum, ii.point, ii.Logs, ii.isbm, ii.enemyData })
+                    dbh.Db.Updateable<F2.mi_jing>(new F2.mi_jing() { leftnum = 0, point = 0, Logs = "", isbm = false, enemyData = "", reward_person = false, reward_sect = false })
+                    .UpdateColumns(ii => new { ii.leftnum, ii.point, ii.Logs, ii.isbm, ii.enemyData, ii.reward_person, ii.reward_sect })
                     .Where(ii => !ii.isRobot).ExecuteCommand();
 
                     dbh.Db.Updateable<F2.sects>(new F2.sects() { mi_jing_point = 0 })
