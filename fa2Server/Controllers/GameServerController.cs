@@ -503,7 +503,7 @@ namespace fa2Server.Controllers
             ResObj["data"]["fscq"] = fscq.ToString(Formatting.None);
             ResObj["data"]["isDLSave"] =0;
             ResObj["data"]["lastDCTime"] = account.lastDCTime;
-            ResObj["data"]["login_time"] = DateTime.Now.AsTimestamp();
+            ResObj["data"]["login_time"] = DateTime.Now.AddHours(8).AsTimestamp();
             ResObj["data"]["net_id"] = account.net_id;
             ResObj["data"]["token"] = account.token;
             ResObj["data"]["userdata"] = account.userdata;
@@ -917,7 +917,7 @@ namespace fa2Server.Controllers
                                 }
                                 else
                                 {
-                                    int r = new Random().Next(10, 100);
+                                    int r = new Random().Next(10, 50);
                                     dbh.Db.Updateable<F2.user>()
                                         .ReSetValue(ii => ii.shl == (ii.shl + r))
                                         .SetColumns(ii => ii.lastGetShlTime == DateTime.Now)
