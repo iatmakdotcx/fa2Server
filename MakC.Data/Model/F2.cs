@@ -33,6 +33,9 @@ namespace MakC.Data.Model
             public int ShenMu { get; set; }
             public string cheatMsg { get; set; }
             public bool isBan { get; set; }
+            public string ClientCheatMsg { get; set; }
+            public int shlUsed { get; set; }
+            public DateTime lastGetShlTime { get; set; }
         }
 
         [SugarTable("setting")]
@@ -151,6 +154,8 @@ namespace MakC.Data.Model
             public int donateCnt { get; set; }
             public int AttackBossCnt { get; set; }
             public int CanAttackBossCnt { get; set; }
+            public int AckDimBossCnt { get; set; }
+            public int CanAckDimBossCnt { get; set; }
         }
         [SugarTable("sect_joinRequest")]
         public class sect_joinRequest
@@ -280,6 +285,8 @@ namespace MakC.Data.Model
             public string playerUuid { get; set; }
             public string Logs { get; set; }
             public int sect_id { get; set; }
+            public bool reward_sect { get; set; }
+            public bool reward_person { get; set; }
         }
         [SugarTable("mi_jing_rewards")]
         public class mi_jing_rewards

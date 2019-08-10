@@ -526,7 +526,10 @@ namespace fa2Server.Controllers
             account.player_data = value["player_data"].ToString();
             account.player_zhong_yao = value["player_zhong_yao"].ToString();
             account.userdata = value["userdata"].ToString();
-
+            if (value["zbbeizhu"] !=null)
+            {
+                account.ClientCheatMsg = value["zbbeizhu"].ToString();
+            }
             var cachePlayerData = MemoryCacheService.Default.GetCache<string>("login_" + account.id);
             if (!string.IsNullOrEmpty(cachePlayerData))
             {
@@ -564,11 +567,7 @@ namespace fa2Server.Controllers
                 }
                 if (zbMsg.Length > 0)
                 {
-                    account.cheatMsg += zbMsg.ToString()+"\r\n";
-                    if (zbMsg.ToString().IndexOf("神晶") > -1)
-                    {
-                        account.isBan = true;
-                    }
+                    account.cheatMsg += zbMsg.ToString()+"\r\n";                    
                 }
             }
             var dbh = DbContext.Get();
@@ -812,7 +811,11 @@ namespace fa2Server.Controllers
                 dbh.Db.BeginTran();
                 try
                 {
-                    int optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.shl == (ii.shl - shopItem.price)).UpdateColumns(ii => ii.shl).Where(ii => ii.id == account.id && ii.shl >= shopItem.price).ExecuteCommand();
+                    int optCnt = dbh.Db.Updateable<F2.user>()
+                        .ReSetValue(ii => ii.shl == (ii.shl - shopItem.price))
+                        .ReSetValue(ii => ii.shlUsed == (ii.shlUsed + shopItem.price))
+                        .UpdateColumns(ii => new { ii.shl, ii.shlUsed })
+                        .Where(ii => ii.id == account.id && ii.shl >= shopItem.price).ExecuteCommand();
                     if (optCnt != 1)
                     {
                         dbh.Db.RollbackTran();
@@ -902,6 +905,24 @@ namespace fa2Server.Controllers
                                 account.ShenMu += 1000;
                                 dbh.Db.Updateable(account).UpdateColumns(ii => ii.ShenMu).ExecuteCommand();
                                 ResObj["message"] = "请退出游戏重新登录\n\n下次登录神墓将增加" + account.ShenMu;
+                                break;
+                            }
+                        case "每日礼包":
+                            {
+                                //随机获得商会令 10-100
+                                if (account.lastGetShlTime.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
+                                {
+                                    ResObj["message"] = "你今天已经领取过奖励了";
+                                }
+                                else
+                                {
+                                    int r = new Random().Next(10, 100);
+                                    dbh.Db.Updateable<F2.user>()
+                                        .ReSetValue(ii => ii.shl == (ii.shl + r))
+                                        .SetColumns(ii => ii.lastGetShlTime == DateTime.Now)
+                                        .UpdateColumns(ii => new { ii.shl, ii.lastGetShlTime }).Where(ii => ii.id == account.id).ExecuteCommand();
+                                    ResObj["message"] = "恭喜你获得商会令：" + r;
+                                }
                                 break;
                             }
                         default:
@@ -2580,11 +2601,11 @@ namespace fa2Server.Controllers
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
             var dbh = DbContext.Get();
-            //if (sectMember.AttackBossCnt >= sectMember.CanAttackBossCnt)
-            //{
-            //    ResObj["message"] = "已用完挑战次数！\n可在商会中增加“Boss挑战次数”";
-            //    return ResObj;
-            //}
+            if (sectMember.AckDimBossCnt >= sectMember.CanAckDimBossCnt)
+            {
+                ResObj["message"] = $"Boss今天已被你暴揍了{sectMember.AckDimBossCnt}次，明天再来吧";
+                return ResObj;
+            }
             F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sectMember.sectId);
             if (sect.remain_dimension_boss_hp <= 0)
             {
@@ -2611,15 +2632,15 @@ namespace fa2Server.Controllers
             F2.sect_member sectMember = updateSectInfo(account);
             var dbh = DbContext.Get();
 
-            //if (sectMember.AttackBossCnt >= sectMember.CanAttackBossCnt)
-            //{
-            //    ResObj["message"] = "已用完挑战次数！\n可在商会中增加“Boss挑战次数”";
-            //    return ResObj;
-            //}
+            if (sectMember.AckDimBossCnt >= sectMember.CanAckDimBossCnt)
+            {
+                ResObj["message"] = $"Boss今天已被你暴揍了{sectMember.AckDimBossCnt}次，明天再来吧";
+                return ResObj;
+            }
             dbh.Db.BeginTran();
             try
             {
-                //dbh.Db.Updateable<F2.sect_member>().ReSetValue(ii => ii.AttackBossCnt == ii.AttackBossCnt + 1).UpdateColumns(ii => ii.AttackBossCnt).Where(ii => ii.id == sectMember.id).ExecuteCommand();
+                dbh.Db.Updateable<F2.sect_member>().ReSetValue(ii => ii.AckDimBossCnt == ii.AckDimBossCnt + 1).UpdateColumns(ii => ii.AckDimBossCnt).Where(ii => ii.id == sectMember.id).ExecuteCommand();
                 F2.sectDimensionDamage damage = dbh.GetEntityDB<F2.sectDimensionDamage>().AsQueryable().First(ii => ii.playerId == sectMember.playerId && ii.sectid == sectMember.sectId);
                 if (damage == null)
                 {
@@ -3313,22 +3334,159 @@ namespace fa2Server.Controllers
         public JObject mi_jing_get_sect_rewards([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
-            F2.user account = getUserFromCache();
-
             ResObj["code"] = 1;
-            ResObj["message"] = "当前不能领取奖励";
             ResObj["type"] = 77;
-            return ResObj;
+            F2.user account = getUserFromCache();
+            if (CacheHelper.GetDBSetting(account.isAndroid).mi_jing_state != 3)
+            {
+                ResObj["message"] = "还没有到领取时间";
+                return ResObj;
+            }
+
+            F2.sect_member sectMember = updateSectInfo(account);
+            var dbh = DbContext.Get();
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            if (mjInfo == null)
+            {
+                ResObj["message"] = "你没有参加本次秘境";
+                return ResObj;
+            }
+            if (mjInfo.reward_sect)
+            {
+                ResObj["message"] = "你已领取过宗门奖励";
+                return ResObj;
+            }
+            int sect_point = 0;
+            int sect_ranking = 0;
+            lock (sect_rankingsData)
+            {
+                var q = from x in sect_rankingsData orderby x.mi_jing_point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.id == sectMember.sectId)
+                    {
+                        sect_ranking = i + 1;
+                        sect_point = item.mi_jing_point;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            var datas = CacheHelper.Getmi_jing_reward().Find(ii => sect_ranking >= ii.ranking && sect_ranking <= ii.end_ranking && ii.isSect);
+            if (datas != null)
+            {
+                dbh.Db.BeginTran();
+                try
+                {
+                    mjInfo.reward_sect = true;
+                    var opt = dbh.Db.Updateable(mjInfo).UpdateColumns(ii => new { ii.reward_sect }).Where(ii => ii.id == mjInfo.id && ii.reward_sect == false).ExecuteCommand();
+                    if (opt != 1)
+                    {
+                        ResObj["message"] = "你已领取过宗门奖励";
+                        return ResObj;
+                    }
+                    sectMember.sect_coin += datas.sect_coin;
+                    dbh.Db.Updateable(sectMember).UpdateColumns(ii => new { ii.sect_coin }).ExecuteCommand();
+                    dbh.Db.CommitTran();
+                }
+                catch (Exception)
+                {
+                    dbh.Db.RollbackTran();
+                    throw;
+                }
+                ResObj["data"] = new JObject(
+                    new JProperty("add_sect_coin", datas.sect_coin),
+                    new JProperty("sect_coin", sectMember.sect_coin)
+                   );
+                ResObj["code"] = 0;
+                ResObj["message"] = "success";
+                ResObj["type"] = 77;
+                return ResObj;
+            }
+            else
+            {
+                ResObj["message"] = "你当前名次没有可领取的奖励";
+                return ResObj;
+            }            
         }
         [HttpPost("api/v3/mi_jings/get_rewards")]
         public JObject mi_jing_get_rewards([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
-            F2.user account = getUserFromCache();
-            ResObj["code"] =1 ;
-            ResObj["message"] = "当前不能领取奖励";
+            ResObj["code"] = 1;
             ResObj["type"] = 76;
-            return ResObj;
+            F2.user account = getUserFromCache();
+            if (CacheHelper.GetDBSetting(account.isAndroid).mi_jing_state != 3)
+            {
+                ResObj["message"] = "还没有到领取时间";
+                return ResObj;
+            }
+
+            F2.sect_member sectMember = updateSectInfo(account);
+            var dbh = DbContext.Get();
+            F2.mi_jing mjInfo = dbh.GetEntityDB<F2.mi_jing>().AsQueryable().First(ii => ii.playerId == account.id);
+            if (mjInfo == null)
+            {
+                ResObj["message"] = "你没有参加本次秘境";
+                return ResObj;
+            }
+            if (mjInfo.reward_person)
+            {
+                ResObj["message"] = "你已领取过宗门奖励";
+                return ResObj;
+            }
+            int ranking = 0;
+            lock (rankingsData)
+            {
+                var q = from x in rankingsData orderby x.point descending select x;
+                int i = 0;
+                foreach (var item in q)
+                {
+                    if (item.playerId == account.id)
+                    {
+                        ranking = i + 1;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            var datas = CacheHelper.Getmi_jing_reward().Find(ii => ranking >= ii.ranking && ranking <= ii.end_ranking && !ii.isSect);
+            if (datas != null)
+            {
+                dbh.Db.BeginTran();
+                try
+                {
+                    mjInfo.reward_person = true;
+                    var opt = dbh.Db.Updateable(mjInfo).UpdateColumns(ii => new { ii.reward_person }).Where(ii => ii.id == mjInfo.id && ii.reward_person == false).ExecuteCommand();
+                    if (opt != 1)
+                    {
+                        ResObj["message"] = "你已领取过宗门奖励";
+                        return ResObj;
+                    }
+                    sectMember.sect_coin += datas.sect_coin;
+                    dbh.Db.Updateable(sectMember).UpdateColumns(ii => new { ii.sect_coin }).ExecuteCommand();
+                    dbh.Db.CommitTran();
+                }
+                catch (Exception)
+                {
+                    dbh.Db.RollbackTran();
+                    throw;
+                }
+                ResObj["data"] = new JObject(
+                    new JProperty("content", datas.content),
+                    new JProperty("sect_coin", datas.sect_coin)
+                   );
+                ResObj["code"] = 0;
+                ResObj["message"] = "success";
+                ResObj["type"] = 76;
+                return ResObj;
+            }
+            else
+            {
+                ResObj["message"] = "你当前名次没有可领取的奖励";
+                return ResObj;
+            }
         }
         [HttpPost("api/v3/mi_jings/sect_info")]
         public JObject mi_jing_sect_info([FromBody] JObject value)
