@@ -45,6 +45,7 @@ namespace fa2Server
             string ErrorMessage = "";
             try
             {
+                context.Request.Path = context.Request.Path.ToString().Replace("//", "/");
                 using (var newRequest = new MemoryStream())
                 {
                     string RequestBody = "";
@@ -133,8 +134,6 @@ namespace fa2Server
             string Req_ServerTime = context.Request.Headers["Server-Time"].ToString();
             if (string.IsNullOrEmpty(Req_sign) || string.IsNullOrEmpty(Req_ServerTime))
             {
-                ILog log = LogManager.GetLogger(Startup.Repository.Name, "checkReqSign");
-                log.Error($"checkReqSign null {Req_sign} ------  {Req_ServerTime}");
                 return false;
             }
             string TmpSign;
@@ -240,7 +239,8 @@ namespace fa2Server
             string k1 = MD5Hash(dct + "^" + dct + "!" + dct);
             string k2 = MD5Hash("zRBcyL2fy[ZsL7XJP$AIDJE*2DFF=#Dxjef2@LDLF");
             k2 = MD5Hash(dct + "#" + k2);
-            return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vd");
+            //return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vd");
+            return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vw");
         }
     }
 }

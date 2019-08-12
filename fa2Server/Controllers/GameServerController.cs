@@ -95,7 +95,19 @@ namespace fa2Server.Controllers
                 new JProperty("playerDict", new JObject()),
                 new JProperty("type", "1")
             ));
-            F2.mi_jing enemyMi = rankingsData[new Random().Next(0, rankingsData.Count)];
+            F2.mi_jing enemyMi;
+            if (rankingsData.Count == 0) ctl_reloadrankingsData();
+
+            if (rankingsData.Count>0)
+            {
+                do{
+                    enemyMi = rankingsData[r.Next(0, rankingsData.Count)];
+                }while (enemyMi.isAndroid != mi_Jing.isAndroid); //只能匹配同平台的
+            }
+            else
+            {
+                enemyMi = mi_Jing;
+            }
             ResObj.Add(new JObject(
                 new JProperty("level", r.Next(2000, 5001)),
                 new JProperty("playerDict", new JObject(
@@ -355,6 +367,8 @@ namespace fa2Server.Controllers
                     dbh.Db.Updateable<F2.sects>(new F2.sects() { mi_jing_point = 0 })
                    .UpdateColumns(ii => ii.mi_jing_point)
                    .Where(ii => ii.id > 0).ExecuteCommand();
+
+                    ctl_reloadrankingsData();
                 }
                 else if (id == 1)
                 {
@@ -422,7 +436,14 @@ namespace fa2Server.Controllers
                 account.player_zhong_yao = setting.base_playerzhongyao;
                 account.shl = 1000;
             }
-
+            else
+            {
+                if (account.isAndroid != (HttpContext.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1))
+                {
+                    ResObj["message"] = "安卓与IOS的装备属性不兼容！";
+                    return ResObj;
+                }
+            }
             JObject player_data = (JObject)JsonConvert.DeserializeObject(account.player_data);
             player_data["playerDict"]["uuid"] = account.uuid;
             player_data["playerDict"]["token"] = account.token;
@@ -444,7 +465,12 @@ namespace fa2Server.Controllers
                 player_data["playerDict"]["smTGLV"] = player_data["playerDict"]["smTGLV"].AsInt() + account.ShenMu;
                 account.ShenMu = 0;
             }
-
+            if (player_data["playerDict"]["haveKSNum"] != null)
+            {
+                //快速战斗次数
+                player_data["playerDict"]["haveKSNum"] = player_data["playerDict"]["haveKSNum"].AsInt() - account.fastAck;
+                account.fastAck = 0;
+            }
             //修复firstplayTime（天数太少，装备太好导致秘境闪退
             if (player_data["playerDict"]["firstPlayTime"] != null)
             {
@@ -480,6 +506,15 @@ namespace fa2Server.Controllers
             ResObj["type"] = 3;
             F2.user account = getUserFromCache();
             F2.setting setting = CacheHelper.GetDBSetting(account.isAndroid);
+            var sgvarsion = float.Parse(value["sg_version"].ToString());
+            if (sgvarsion>100)
+                sgvarsion /= 100;
+            if (sgvarsion < float.Parse(setting.CURVESION))
+            {
+                ResObj["message"] = "客户端版本过低，请更新游戏！";
+                return ResObj;
+            }
+
             var fscq = new JObject();
             fscq["id"] = setting.id;
             fscq["CHONGZHI"] = (JToken)JsonConvert.DeserializeObject(setting.CHONGZHI);
@@ -531,46 +566,46 @@ namespace fa2Server.Controllers
             {
                 account.ClientCheatMsg = value["zbbeizhu"].ToString();
             }
-            var cachePlayerData = MemoryCacheService.Default.GetCache<string>("login_" + account.id);
-            if (!string.IsNullOrEmpty(cachePlayerData))
-            {
-                //这里应该只有登录后领取的离线奖励                
-                MemoryCacheService.Default.RemoveCache("login_" + account.id);
+            //var cachePlayerData = MemoryCacheService.Default.GetCache<string>("login_" + account.id);
+            //if (!string.IsNullOrEmpty(cachePlayerData))
+            //{
+            //    //这里应该只有登录后领取的离线奖励                
+            //    MemoryCacheService.Default.RemoveCache("login_" + account.id);
 
-                JObject oldData = (JObject)JsonConvert.DeserializeObject(cachePlayerData);
-                JObject newData = (JObject)JsonConvert.DeserializeObject(account.player_data);
-                StringBuilder zbMsg = new StringBuilder();
-                //基础数据
-                checkBaseDataNotEqual(oldData, newData, ref zbMsg,ref account);
-                //if (zbMsg.Length>0)
-                //{
-                //    account.isBan = true;
-                //}
-                //背包物品检测
-                checkPackageItemNotEqual(oldData, newData, ref zbMsg);
-                //出战角色检测
-                checkBattleRolesNotEqual(oldData, newData, ref zbMsg);
+            //    JObject oldData = (JObject)JsonConvert.DeserializeObject(cachePlayerData);
+            //    JObject newData = (JObject)JsonConvert.DeserializeObject(account.player_data);
+            //    StringBuilder zbMsg = new StringBuilder();
+            //    //基础数据
+            //    checkBaseDataNotEqual(oldData, newData, ref zbMsg,ref account);
+            //    //if (zbMsg.Length>0)
+            //    //{
+            //    //    account.isBan = true;
+            //    //}
+            //    //背包物品检测
+            //    checkPackageItemNotEqual(oldData, newData, ref zbMsg);
+            //    //出战角色检测
+            //    checkBattleRolesNotEqual(oldData, newData, ref zbMsg);
 
-                if (!compareJsonObj(oldData["playerDict"]["cangkuArr"], newData["playerDict"]["cangkuArr"]))
-                {
-                    //仓库里的东西是不会变的
-                    zbMsg.Append("仓库物品变动！");
-                }
-                if (!compareJsonObj(oldData["playerDict"]["rolesArr"], newData["playerDict"]["rolesArr"]))
-                {
-                    //未上阵的角色也是不会变的
-                    zbMsg.Append("未上阵的角色变动！");
-                }
-                if (!compareJsonObj(oldData["playerDict"]["zfDict"], newData["playerDict"]["zfDict"]))
-                {
-                    //阵法
-                    zbMsg.Append("阵法变动：" + oldData["playerDict"]["zfDict"].ToString(Formatting.None) + "->" + newData["playerDict"]["zfDict"].ToString(Formatting.None));
-                }
-                if (zbMsg.Length > 0)
-                {
-                    account.cheatMsg += zbMsg.ToString()+"\r\n";                    
-                }
-            }
+            //    if (!compareJsonObj(oldData["playerDict"]["cangkuArr"], newData["playerDict"]["cangkuArr"]))
+            //    {
+            //        //仓库里的东西是不会变的
+            //        zbMsg.Append("仓库物品变动！");
+            //    }
+            //    if (!compareJsonObj(oldData["playerDict"]["rolesArr"], newData["playerDict"]["rolesArr"]))
+            //    {
+            //        //未上阵的角色也是不会变的
+            //        zbMsg.Append("未上阵的角色变动！");
+            //    }
+            //    if (!compareJsonObj(oldData["playerDict"]["zfDict"], newData["playerDict"]["zfDict"]))
+            //    {
+            //        //阵法
+            //        zbMsg.Append("阵法变动：" + oldData["playerDict"]["zfDict"].ToString(Formatting.None) + "->" + newData["playerDict"]["zfDict"].ToString(Formatting.None));
+            //    }
+            //    if (zbMsg.Length > 0)
+            //    {
+            //        account.cheatMsg += zbMsg.ToString()+"\r\n";                    
+            //    }
+            //}
             var dbh = DbContext.Get();
             JObject zhong_yao = (JObject)JsonConvert.DeserializeObject(account.player_zhong_yao);
             account.lastDCTime = zhong_yao["lastDCTime"].ToString().AsInt();
@@ -927,7 +962,15 @@ namespace fa2Server.Controllers
                                 break;
                             }
                         default:
-                            if (!string.IsNullOrEmpty(shopItem.giftcode))
+                            if (shopItem.item_name.StartsWith("快速战斗+"))
+                            {
+                                var zjcs = int.Parse(shopItem.item_name.Substring("快速战斗+".Length));
+                                account.fastAck += zjcs;
+                                dbh.Db.Updateable(account).UpdateColumns(ii => ii.fastAck).ExecuteCommand();
+                                ResObj["message"] = "请退出游戏重新登录\n\n下次登录快速战斗将增加" + account.fastAck;
+                                break;
+                            }
+                            else if (!string.IsNullOrEmpty(shopItem.giftcode))
                             {
                                 F2.giftCode gif = new F2.giftCode();
                                 gif.create_at = DateTime.Now;
@@ -2576,7 +2619,7 @@ namespace fa2Server.Controllers
             var skills = new JArray();
             for (int i = 0; i < 6; i++)
             {
-                skills.Add(new JObject(new JProperty("cysmJN", "1"), new JProperty("ID", rr.Next(172, 350))));
+                skills.Add(new JObject(new JProperty("cysmJN", "1"), new JProperty("ID", rr.Next(172, 350).ToString())));
             }
             sect.remain_dimension_boss_skill = skills.ToString(Formatting.None);
             sect.remain_dimension_boss_Level++;
@@ -2821,6 +2864,8 @@ namespace fa2Server.Controllers
         }
         #endregion 次元门
         #region 秘境
+        public static List<F2.mi_jing> rankingsData = new List<F2.mi_jing>();
+        public static List<F2.sects> sect_rankingsData = new List<F2.sects>();
         /// <summary>
         /// 秘境信息
         /// </summary>
@@ -2853,6 +2898,7 @@ namespace fa2Server.Controllers
                 mjInfo.playerId = account.id;
                 mjInfo.playerUuid = account.uuid;
                 mjInfo.sect_id = sectMember.sectId;
+                mjInfo.isAndroid = account.isAndroid;
                 dbh.Db.Insertable(mjInfo).ExecuteCommand();
             }
             else if (mjInfo.sect_id != sectMember.sectId)
@@ -3039,8 +3085,7 @@ namespace fa2Server.Controllers
             ResObj["message"] = "success";
             ResObj["type"] = 73;
             return ResObj;
-        }
-        public static List<F2.mi_jing> rankingsData = new List<F2.mi_jing>();
+        }        
         /// <summary>
         /// 个人排行榜
         /// </summary>
@@ -3100,8 +3145,7 @@ namespace fa2Server.Controllers
             ResObj["message"] = "success";
             ResObj["type"] = 79;
             return ResObj;
-        }
-        public static List<F2.sects> sect_rankingsData = new List<F2.sects>();
+        }        
         /// <summary>
         /// 宗门排行榜
         /// </summary>

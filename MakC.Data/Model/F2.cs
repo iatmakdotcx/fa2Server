@@ -36,6 +36,7 @@ namespace MakC.Data.Model
             public string ClientCheatMsg { get; set; }
             public int shlUsed { get; set; }
             public DateTime lastGetShlTime { get; set; }
+            public int fastAck { get; set; }
         }
 
         [SugarTable("setting")]
@@ -287,6 +288,7 @@ namespace MakC.Data.Model
             public int sect_id { get; set; }
             public bool reward_sect { get; set; }
             public bool reward_person { get; set; }
+            public bool isAndroid { get; set; }
         }
         [SugarTable("mi_jing_rewards")]
         public class mi_jing_rewards
