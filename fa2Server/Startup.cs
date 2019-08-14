@@ -90,6 +90,31 @@ namespace fa2Server
             {
                 log.Info("new day job");
                 GameServerController.NewDay();
+
+                var cud = DateTime.Now;
+                if (cud.DayOfWeek == DayOfWeek.Sunday || cud.DayOfWeek == DayOfWeek.Thursday)
+                {
+                    //星期1，4报名
+                    GameServerController.ctl_mj_0(1);
+                }
+                else if (cud.DayOfWeek == DayOfWeek.Tuesday || cud.DayOfWeek == DayOfWeek.Friday)
+                {
+                    //星期2，5开战
+                    GameServerController.ctl_mj_0(2);
+                }
+                else if (cud.DayOfWeek == DayOfWeek.Wednesday || cud.DayOfWeek == DayOfWeek.Saturday)
+                {
+                    //星期3，6结算
+                    GameServerController.ctl_mj_0(3);
+                }
+                else
+                {
+                    //周末关闭
+                    GameServerController.ctl_mj_0(0);
+                }
+
+
+
             });
         }
     }

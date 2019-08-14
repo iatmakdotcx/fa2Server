@@ -349,7 +349,11 @@ namespace fa2Server.Controllers
             return "ok";
         }
         [Route("ctl/mj/{id=0}")]
-        public string ctl_mj_0(int id)
+        public string ctl_mj(int id)
+        {
+            return ctl_mj_0(id);
+        }
+        public static string ctl_mj_0(int id)
         {
             //0未开启。1报名中，2开战中，3结算中
             lock (locker)
@@ -368,7 +372,8 @@ namespace fa2Server.Controllers
                    .UpdateColumns(ii => ii.mi_jing_point)
                    .Where(ii => ii.id > 0).ExecuteCommand();
 
-                    ctl_reloadrankingsData();
+                    rankingsData = dbh.GetEntityDB<F2.mi_jing>().GetList(ii => ii.isRobot || ii.isbm);
+                    sect_rankingsData = dbh.GetEntityDB<F2.sects>().GetList();
                 }
                 else if (id == 1)
                 {
@@ -399,7 +404,7 @@ namespace fa2Server.Controllers
             if (!string.IsNullOrEmpty(uuid) && code > 0)
             {
                 var dbh = DbContext.Get();
-                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == uuid && ii.code == code).First();
+                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().First(ii => ii.uuid == uuid && ii.code == code);
                 if (oldg != null)
                 {
                     dbh.Db.Deleteable(oldg).ExecuteCommand();
@@ -975,15 +980,7 @@ namespace fa2Server.Controllers
                                 F2.giftCode gif = new F2.giftCode();
                                 gif.create_at = DateTime.Now;
                                 gif.uuid = account.uuid;
-                                F2.giftCode oldg = dbh.Db.Queryable<F2.giftCode>().Where(ii => ii.uuid == account.uuid).OrderBy(ii => ii.code, SqlSugar.OrderByType.Desc).First();
-                                if (oldg == null)
-                                {
-                                    gif.code = 1;
-                                }
-                                else
-                                {
-                                    gif.code = oldg.code + 1;
-                                }
+                                gif.code = 1;
                                 gif.itemData = shopItem.giftcode;
                                 dbh.Db.Insertable(gif).ExecuteCommand();
                                 ResObj["message"] = "兑换码:" + gif.code.ToString();
@@ -1321,6 +1318,7 @@ namespace fa2Server.Controllers
             sect.updated_at = DateTime.Now;
             sect.id = dbh.Db.Insertable(sect).ExecuteReturnIdentity();
             sect.boss_HP = 1000000;
+            sect.remain_dimension_boss_CankillCnt = 50;
 
             sectMember.join_time = DateTime.Now;
             sectMember.last_login_time = DateTime.Now;
@@ -2400,6 +2398,322 @@ namespace fa2Server.Controllers
             return ResObj;
         }
 
+        private static List<string> 先天 = new List<string>() {
+           "10,72",//弑神舰
+            "5,67",//先天灵盔
+            "5,69",//初心头冠
+            "6,43",//银狐飞羽鞋
+            "11,69",//九幽战皇盾
+            "11,78",//清风盾
+            "11,80",//试炼盾.先天
+            "7,67",//先天灵府
+            "7,70",//阴镜
+            "7,71",//阳镜
+            "8,88",//先天魂铁
+            "0,146",//生命神杖
+            "0,190",//郭老邪的矿镐
+            "1,64",//御影战甲
+            "2,72",//噬魂灵戒
+            "2,73",//佩奇指环
+            "2,75",//普利尼心戒
+            "2,78",//炼妖手套
+            "3,30",//试炼之心.先天
+            "3,87",//初心项链
+            "4,65",//蜡笔护镯
+            "4,68",//猫咪的铃铛
+            "4,71",//初心手镯
+            "4,73",//炼妖狼爪手
+        };
+        private static List<string> 神器 = new List<string>() {
+            "5,66",//真言神盔
+            "5,68",//金神
+            "6,66",//风神靴
+            "11,70",//木神盾
+            "7,72",//阴阳镜
+            "8,89",//通灵神铁
+            "0,182",//通灵神兵
+            "1,68",//通灵神甲
+            "1,70",//大地神甲
+            "2,71",//噬魂神戒
+            "2,74",//火神指环
+            "4,67",//水神手镯
+        };
+        private static List<string> 超神器假 = new List<string>() {
+            "5,73",//东皇盔.赝品
+            "6,67",//九黎靴.赝品
+            "11,77",//盘古盾.赝品
+            "7,74",//昆仑镜.赝品
+            "12,65",//神农鼎.赝品
+            "0,192",//轩辕剑.赝品
+            "1,72",//崆峒甲.赝品
+            "2,77",//伏羲戒.赝品
+            "3,89",//女娲石.赝品
+            "4,70",//昊天镯.赝品
+        };
+        private static List<string> 超神器真 = new List<string>() {
+            "5,72",//东皇盔.真品
+            "6,68",//九黎靴.真品
+            "11,76",//盘古盾.真品
+            "7,73",//昆仑镜.真品
+            "12,64",//神农鼎.真品
+            "0,191",//轩辕剑.真品
+            "1,71",//崆峒甲.真品
+            "2,76",//伏羲戒.真品
+            "3,88",//女娲石.真品
+            "4,69",//昊天镯.真品
+        };
+        //一个宗门一天极限2000w
+        const int 抽奖费用 = 10000;
+
+
+        private string 抽奖_IOS(int cnt,ref F2.user account,bool b1 = false)
+        {
+            JArray reward_item_info = new JArray();
+            var r = new Random();
+            int tzl = 100;
+            for (int i = 0; i < cnt; i++)
+            {
+                string item = "";
+                int luckNum = r.Next(0, 1000);
+                if (luckNum == r.Next(0, 1000) || (i == 0 && b1))
+                {
+                    //千分之一，出先天
+                    item = 先天[r.Next(0, 先天.Count)];
+                }
+                else if (luckNum == r.Next(0, 10000))
+                {
+                    //万分之一，出神器
+                    item = 神器[r.Next(0, 神器.Count)];
+                    account.cjs += 1;
+                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjs).ExecuteCommand();
+                }
+                else if (luckNum == r.Next(0, 100000))
+                {
+                    //十万分之一，超神器假
+                    item = 超神器假[r.Next(0, 超神器假.Count)];
+                    account.cjcs += 1;
+                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
+                }
+                else if (luckNum == r.Next(0, 1000000))
+                {
+                    //百万分之一，超神器真
+                    item = 超神器真[r.Next(0, 超神器真.Count)];
+                    account.cjcs += 1;
+                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii=>ii.cjcs).ExecuteCommand();
+                }
+                else
+                {
+                    //啥都没中
+                    tzl += 100;
+                    continue;
+                }
+                var iarr = item.Split(",");
+                reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0]), new JProperty("itemNum", 1), new JProperty("num", 1)));
+            }
+            reward_item_info.Add(new JObject(new JProperty("childType", "33"), new JProperty("itemType", "8"), new JProperty("itemNum", tzl), new JProperty("num", tzl)));
+
+            JObject jo = new JObject(
+                new JProperty("error", 0),
+                new JProperty("GETBODY", new JObject(
+                    new JProperty("itemGetArr", reward_item_info)
+                    ))
+                );
+            return jo.ToString(Formatting.None);
+        }
+        private static JArray 抽奖Android(int cnt, bool b1 = false)
+        {
+            JArray reward_item_info = new JArray();
+            var r = new Random();
+            for (int i = 0; i < cnt; i++)
+            {
+                string item = "";
+                try
+                {
+                    int luckNum = r.Next(0, 1000);
+                    if (luckNum == r.Next(0, 1000) || (i == 0 && b1))
+                    {
+                        //千分之一，出先天
+                        item = 先天[r.Next(0, 先天.Count)];
+                        continue;
+                    }
+                    if (luckNum == r.Next(0, 10000))
+                    {
+                        //万分之一，出神器
+                        item = 神器[r.Next(0, 神器.Count)];
+                        continue;
+                    }
+                    if (luckNum == r.Next(0, 100000))
+                    {
+                        //十万分之一，超神器假
+                        item = 超神器假[r.Next(0, 超神器假.Count)];
+                        continue;
+                    }
+                    if (luckNum == r.Next(0, 1000000))
+                    {
+                        //百万分之一，超神器真
+                        item = 超神器真[r.Next(0, 超神器真.Count)];
+                        continue;
+                    }
+                    item = "0,127";
+                }
+                finally
+                {
+                    var iarr = item.Split(",");
+                    reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0])));
+                }
+            }
+            return reward_item_info;
+        }
+        //高级炼制
+        [HttpPost("api/v3/sects/advanced_smelt")]
+        public JObject sects_v3_advanced_smelt([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.sect_coin < 抽奖费用 * 10)
+            {
+                ResObj["message"] = "宗门币不足！";
+                return ResObj;
+            }
+            var vdata = 抽奖_IOS(10, ref account);
+            var dbh = DbContext.Get();
+            dbh.Db.BeginTran();
+            try
+            {
+                int optcnt = dbh.Db.Updateable<F2.sect_member>()
+                     .ReSetValue(ii => ii.sect_coin == ii.sect_coin - 抽奖费用 * 10)
+                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count + 10)
+                     .UpdateColumns(ii => new { ii.sect_coin, ii.smelt_count })
+                     .Where(ii => ii.id == sectMember.id && ii.sect_coin >= 抽奖费用 * 10).ExecuteCommand();
+                if (optcnt != 1)
+                {
+                    dbh.Db.RollbackTran();
+                    ResObj["message"] = "宗门币不足！";
+                    return ResObj;
+                }
+
+                F2.giftCode gif = new F2.giftCode();
+                gif.create_at = DateTime.Now;
+                gif.uuid = account.uuid;
+                gif.code = 1;
+                gif.itemData = vdata;
+                dbh.Db.Insertable(gif).ExecuteCommand();
+                ResObj["message"] = "兑换码:" + gif.code.ToString();
+
+                dbh.Db.CommitTran();
+            }
+            catch (Exception)
+            {
+                dbh.Db.RollbackTran();
+                ResObj["message"] = "宗门币不足！";
+                return ResObj;
+            }
+            //ResObj["code"] = 0;
+            //ResObj["message"] = "success";
+            //ResObj["type"] = 67;
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/advanced_smelt_ten_times")]
+        public JObject sects_v3_advanced_smelt_ten_times([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.sect_coin < 抽奖费用 * 100)
+            {
+                ResObj["message"] = "宗门币不足！";
+                return ResObj;
+            }
+            var vdata = 抽奖_IOS(100, ref account);
+            var dbh = DbContext.Get();
+            dbh.Db.BeginTran();
+            try
+            {
+                int optcnt = dbh.Db.Updateable<F2.sect_member>()
+                     .ReSetValue(ii => ii.sect_coin == ii.sect_coin - 抽奖费用 * 100)
+                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count + 100)
+                     .UpdateColumns(ii => new { ii.sect_coin, ii.smelt_count })
+                     .Where(ii => ii.id == sectMember.id && ii.sect_coin >= 抽奖费用 * 100).ExecuteCommand();
+                if (optcnt != 1)
+                {
+                    dbh.Db.RollbackTran();
+                    ResObj["message"] = "宗门币不足！";
+                    return ResObj;
+                }
+
+                F2.giftCode gif = new F2.giftCode();
+                gif.create_at = DateTime.Now;
+                gif.uuid = account.uuid;
+                gif.code = 1;
+                gif.itemData = vdata;
+                dbh.Db.Insertable(gif).ExecuteCommand();
+                ResObj["message"] = "兑换码:" + gif.code.ToString();
+
+                dbh.Db.CommitTran();
+            }
+            catch (Exception)
+            {
+                dbh.Db.RollbackTran();
+                ResObj["message"] = "宗门币不足！";
+                return ResObj;
+            }
+            return ResObj;
+        }
+        [HttpPost("api/v3/sects/deity_smelt")]
+        public JObject sects_v3_deity_smelt([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            if (sectMember.smelt_count < 3000)
+            {
+                ResObj["message"] = "高级炼制次数不足！";
+                return ResObj;
+            }
+            var vdata = 抽奖_IOS(10, ref account, true);
+            var dbh = DbContext.Get();
+            dbh.Db.BeginTran();
+            try
+            {
+                int optcnt = dbh.Db.Updateable<F2.sect_member>()
+                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count - 3000)
+                     .UpdateColumns(ii => new { ii.smelt_count })
+                     .Where(ii => ii.id == sectMember.id && ii.smelt_count >= 3000).ExecuteCommand();
+                if (optcnt != 1)
+                {
+                    dbh.Db.RollbackTran();
+                    ResObj["message"] = "宗门币不足！";
+                    return ResObj;
+                }
+                F2.giftCode gif = new F2.giftCode();
+                gif.create_at = DateTime.Now;
+                gif.uuid = account.uuid;
+                gif.code = 1;
+                gif.itemData = vdata;
+                dbh.Db.Insertable(gif).ExecuteCommand();
+                ResObj["message"] = "兑换码:" + gif.code.ToString();
+                dbh.Db.CommitTran();
+            }
+            catch (Exception)
+            {
+                dbh.Db.RollbackTran();
+                ResObj["message"] = "宗门币不足！";
+                return ResObj;
+            }
+
+            //ResObj["code"] = 0;
+            //ResObj["message"] = "success";
+            //ResObj["type"] = 70;
+            return ResObj;
+        }
+
         #endregion 宗门
 
 
@@ -2615,15 +2929,23 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "boss未被击杀";
                 return ResObj;
             }
+            if (sect.remain_dimension_boss_killCnt >= sect.remain_dimension_boss_CankillCnt)
+            {
+                ResObj["message"] = $"今天Biss已击杀了 {sect.remain_dimension_boss_killCnt} 次";
+                return ResObj;
+            }
             var rr = new Random();
             var skills = new JArray();
             for (int i = 0; i < 6; i++)
             {
-                skills.Add(new JObject(new JProperty("cysmJN", "1"), new JProperty("ID", rr.Next(172, 350).ToString())));
+                skills.Add(new JObject(new JProperty("cysmJN", "100"), new JProperty("ID", rr.Next(172, 350).ToString())));
             }
+
             sect.remain_dimension_boss_skill = skills.ToString(Formatting.None);
             sect.remain_dimension_boss_Level++;
-            sect.remain_dimension_boss_hp = sect.remain_dimension_boss_Level * 5000000;
+            if (sect.remain_dimension_boss_Level>420)
+                sect.remain_dimension_boss_Level = 420;            
+            sect.remain_dimension_boss_hp = (long)sect.remain_dimension_boss_Level * (long)5000000;
             dbh.Db.Updateable(sect).UpdateColumns(ii => new { ii.remain_dimension_boss_skill, ii.remain_dimension_boss_hp, ii.remain_dimension_boss_Level }).ExecuteCommand();
 
             dbh.Db.Deleteable<F2.sectDimensionDamage>().Where(ii => ii.sectid == sectMember.sectId).ExecuteCommand();
@@ -2717,17 +3039,16 @@ namespace fa2Server.Controllers
                 else
                 {
                     //killed
-                    log.Info("boss killed");
+                    sects.remain_dimension_boss_killCnt++;
                     sects.remain_dimension_boss_hp = 0;
-                    dbh.Db.Updateable(sects).UpdateColumns(ii => ii.remain_dimension_boss_hp).ExecuteCommand();
+                    dbh.Db.Updateable(sects).UpdateColumns(ii => new { ii.remain_dimension_boss_hp, ii.remain_dimension_boss_killCnt }).ExecuteCommand();
 
                     F2.sectDimensionBossAward award = new F2.sectDimensionBossAward();
                     award.bossLevel = sects.remain_dimension_boss_Level;
                     award.sect_coin = sects.remain_dimension_boss_Level * 1000;                    
                     //所有打过的都能获得
                     //var dmglst = dbh.Db.Queryable<F2.sectDimensionDamage>().Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
-                    var dmglst = dbh.Db.Queryable<F2.sect_member>().Where(ii => ii.sectId == sectMember.sectId).Select(ii=>ii.playerId).ToList();
-                    log.Info("dmglst。CNT:"+ dmglst.Count);
+                    var dmglst = dbh.Db.Queryable<F2.sect_member>().Where(ii => ii.sectId == sectMember.sectId).Select(ii=>ii.playerId).ToList();                    
                     foreach (var item in dmglst)
                     {
                         award.playerId = item;

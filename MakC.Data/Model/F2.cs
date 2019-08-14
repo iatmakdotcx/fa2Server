@@ -37,6 +37,9 @@ namespace MakC.Data.Model
             public int shlUsed { get; set; }
             public DateTime lastGetShlTime { get; set; }
             public int fastAck { get; set; }
+            public int cjs { get; set; }
+            public int cjcs { get; set; }
+
         }
 
         [SugarTable("setting")]
@@ -126,6 +129,8 @@ namespace MakC.Data.Model
             public int remain_dimension_boss_Level { get; set; }
             public string remain_dimension_boss_skill { get; set; }
             public int mi_jing_point { get; set; }
+            public int remain_dimension_boss_CankillCnt { get; set; }
+            public int remain_dimension_boss_killCnt { get; set; }
         }
         [SugarTable("sect_member")]
         public class sect_member
