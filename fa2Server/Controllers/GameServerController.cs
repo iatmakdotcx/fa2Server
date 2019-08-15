@@ -3831,6 +3831,9 @@ namespace fa2Server.Controllers
                     }
                     sectMember.sect_coin += datas.sect_coin;
                     dbh.Db.Updateable(sectMember).UpdateColumns(ii => new { ii.sect_coin }).ExecuteCommand();
+
+                    dbh.Db.Updateable(account).ReSetValue(ii => ii.shl == ii.shl + datas.shl).UpdateColumns(ii => new { ii.shl }).ExecuteCommand();
+
                     dbh.Db.CommitTran();
                 }
                 catch (Exception)
