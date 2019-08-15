@@ -2464,8 +2464,7 @@ namespace fa2Server.Controllers
         };
         //一个宗门一天极限2000w
         const int 抽奖费用 = 10000;
-
-
+        
         private string 抽奖_IOS(int cnt,ref F2.user account,bool b1 = false)
         {
             JArray reward_item_info = new JArray();
@@ -2487,19 +2486,19 @@ namespace fa2Server.Controllers
                     account.cjs += 1;
                     DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjs).ExecuteCommand();
                 }
-                else if (luckNum == r.Next(0, 100000))
+                else if ((account.cjcs == 0 || account.cz > 100) && luckNum == r.Next(0, 100000)) //没有充值的可以抽中一个神器
                 {
                     //十万分之一，超神器假
                     item = 超神器假[r.Next(0, 超神器假.Count)];
                     account.cjcs += 1;
                     DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
                 }
-                else if (luckNum == r.Next(0, 1000000))
+                else if (account.cz > 1000 && luckNum == r.Next(0, 1000000))  //充值小于 1000 的不能抽真神器
                 {
                     //百万分之一，超神器真
                     item = 超神器真[r.Next(0, 超神器真.Count)];
                     account.cjcs += 1;
-                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii=>ii.cjcs).ExecuteCommand();
+                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
                 }
                 else
                 {
@@ -3622,7 +3621,7 @@ namespace fa2Server.Controllers
                 }
                 dbh.Db.CommitTran();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 dbh.Db.RollbackTran();
                 throw;
