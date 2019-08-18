@@ -42,6 +42,10 @@ namespace MakC.Data.Model
             public int cz { get; set; }
             public int sjze { get; set; }
             public string firstPlayTime { get; set; }
+            /// <summary>
+            /// 每日白嫖试炼塔，次数=充值数/100+1
+            /// </summary>
+            public int mrbpslt { get; set; }
 
         }
 

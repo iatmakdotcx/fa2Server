@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace MakC.Data
@@ -32,6 +33,22 @@ namespace MakC.Data
                     IsAutoRemoveDataCache = true
                 }
             });
+            Db.Aop.OnLogExecuting = (sql, pars) => //SQL执行前 可以修改SQL
+            {
+#if DEBUG
+                StringBuilder sbsql = new StringBuilder();
+                sbsql.AppendLine("---------------------------------sql start-----------------------------------------");
+                sbsql.AppendLine(sql);
+                sbsql.AppendLine("Parameters:");
+                foreach (var item in pars)
+                {
+                    sbsql.AppendLine(item.ParameterName + "       " + item.Value);
+                }
+                sbsql.AppendLine("----------------------------------sql end----------------------------------------");
+                System.Diagnostics.Trace.WriteLine(sbsql.ToString());
+#endif
+
+            };
         }
         private static DbType getDbType(string dbTypeString)
         {

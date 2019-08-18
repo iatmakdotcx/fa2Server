@@ -49,46 +49,48 @@ namespace fa2Server
             int sg_version = 0;
             try
             {
-                context.Request.Path = context.Request.Path.ToString().Replace("//", "/");
-                using (var newRequest = new MemoryStream())
+                if (context.Request.Method == "POST")
                 {
-                    string RequestBody = "";
-                    using (var reader = new StreamReader(request))
+                    context.Request.Path = context.Request.Path.ToString().Replace("//", "/");
+                    using (var newRequest = new MemoryStream())
                     {
-                        RequestBody = await reader.ReadToEndAsync();
-                    }
-
-                    JsonReqdata = (JObject)JsonConvert.DeserializeObject(RequestBody);
-                    if (JsonReqdata["uuid"] != null)
-                    {
-                        uuid = JsonReqdata["uuid"].ToString();
-                    }
-                    sg_version = JsonReqdata["sg_version"].AsInt();
-                    if (!checkReqSign(context, RequestBody, uuid, sg_version))
-                    {
-                        ErrorMessage = "参数错误.";
-                        return;
-                    }
-                    ErrorMessage = checkUserInfo(context, JsonReqdata);
-                    if (!string.IsNullOrEmpty(ErrorMessage))
-                    {
-                        return;
-                    }
-                    using (var newResponse = new MemoryStream())
-                    {
-                        context.Response.Body = newResponse;
-                        using (var writer = new StreamWriter(newRequest))
+                        string RequestBody = "";
+                        using (var reader = new StreamReader(request))
                         {
-                            await writer.WriteAsync(RequestBody);
-                            await writer.FlushAsync();
-                            newRequest.Position = 0;
-                            context.Request.Body = newRequest;
-                            await _next(context);
+                            RequestBody = await reader.ReadToEndAsync();
                         }
-                        using (var reader = new StreamReader(newResponse))
+                        JsonReqdata = (JObject)JsonConvert.DeserializeObject(RequestBody);
+                        if (JsonReqdata["uuid"] != null)
                         {
-                            newResponse.Position = 0;
-                            ResponseBody = await reader.ReadToEndAsync();
+                            uuid = JsonReqdata["uuid"].ToString();
+                        }
+                        sg_version = JsonReqdata["sg_version"].AsInt();
+                        if (!checkReqSign(context, RequestBody, uuid, sg_version))
+                        {
+                            ErrorMessage = "参数错误.";
+                            return;
+                        }
+                        ErrorMessage = checkUserInfo(context, JsonReqdata);
+                        if (!string.IsNullOrEmpty(ErrorMessage))
+                        {
+                            return;
+                        }
+                        using (var newResponse = new MemoryStream())
+                        {
+                            context.Response.Body = newResponse;
+                            using (var writer = new StreamWriter(newRequest))
+                            {
+                                await writer.WriteAsync(RequestBody);
+                                await writer.FlushAsync();
+                                newRequest.Position = 0;
+                                context.Request.Body = newRequest;
+                                await _next(context);
+                            }
+                            using (var reader = new StreamReader(newResponse))
+                            {
+                                newResponse.Position = 0;
+                                ResponseBody = await reader.ReadToEndAsync();
+                            }
                         }
                     }
                 }
@@ -120,10 +122,7 @@ namespace fa2Server
                     {
                         context.Response.Headers.Add("Sign2", SignData_Andorid(ServerTime, ResponseBody, uuid));
                     }
-                    else
-                    {
-                        context.Response.Headers.Add("Sign", SignData_Andorid(ServerTime, ResponseBody, ""));
-                    }
+                    context.Response.Headers.Add("Sign", SignData_Andorid(ServerTime, ResponseBody, ""));
                 }
                 else
                 {
@@ -131,12 +130,9 @@ namespace fa2Server
                     {
                         context.Response.Headers.Add("Sign2", SignData_Ios428Plus(ServerTime, ResponseBody, uuid));
                     }
-                    else
-                    {
-                        context.Response.Headers.Add("Sign", SignData_Ios428Plus(ServerTime, ResponseBody, ""));
-                    }
+                    context.Response.Headers.Add("Sign", SignData_Ios428Plus(ServerTime, ResponseBody, ""));
                 }
-                
+
                 using (var writer = new StreamWriter(response))
                 {
                     await writer.WriteAsync(ResponseBody);

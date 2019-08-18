@@ -340,6 +340,9 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable<F2.sect_member>(new F2.sect_member() { AttackBossCnt = 0, AckDimBossCnt=0 ,awardCnt = 0, donateCnt = 0 })
                 .UpdateColumns(ii => new { ii.AttackBossCnt, ii.AckDimBossCnt, ii.awardCnt , ii.donateCnt })
                 .Where(ii => ii.id > 0).ExecuteCommand();
+            dbh.Db.Updateable(new F2.user() { mrbpslt = 0 })
+                .UpdateColumns(ii => new { ii.mrbpslt })
+                .Where(ii => ii.id > 0).ExecuteCommand();
         }
         [Route("ctl/newday")]
         public string ctl_newday()
@@ -380,6 +383,10 @@ namespace fa2Server.Controllers
                     .Where(ii => ii.id > 0).ExecuteCommand();
                 if (id == 0)
                 {
+                   
+                }
+                else if (id == 1)
+                {
                     dbh.Db.Updateable<F2.mi_jing>(new F2.mi_jing() { leftnum = 0, point = 0, Logs = "", isbm = false, enemyData = "", reward_person = false, reward_sect = false })
                     .UpdateColumns(ii => new { ii.leftnum, ii.point, ii.Logs, ii.isbm, ii.enemyData, ii.reward_person, ii.reward_sect })
                     .Where(ii => !ii.isRobot).ExecuteCommand();
@@ -390,10 +397,6 @@ namespace fa2Server.Controllers
 
                     rankingsData = dbh.GetEntityDB<F2.mi_jing>().GetList(ii => ii.isRobot || ii.isbm);
                     sect_rankingsData = dbh.GetEntityDB<F2.sects>().GetList();
-                }
-                else if (id == 1)
-                {
-                   
                 }
                 if (id == 2)
                 {
@@ -501,10 +504,11 @@ namespace fa2Server.Controllers
                     player_data["playerDict"]["firstPlayTime"] = "1504483658";
                 }
             }
-            if (string.IsNullOrEmpty(account.firstPlayTime))
+            else
             {
-                account.firstPlayTime = "1504483658";
+                player_data["playerDict"]["firstPlayTime"] = "1504483658";
             }
+            account.firstPlayTime = player_data["playerDict"]["firstPlayTime"].ToString();
             account.lastLoginTime = DateTime.Now;
             account.player_data = player_data.ToString(Formatting.None);
             if (dbh.Db.Updateable(account).ExecuteCommand() == 0)
@@ -520,7 +524,6 @@ namespace fa2Server.Controllers
             ResObj["data"]["userdata"] = account.userdata;
             ResObj["data"]["uuid"] = account.uuid;
             ResObj["code"] = 0;
-            MemoryCacheService.Default.SetCache("isfirst_" + account.id, "1", 10);
             return ResObj;
         }
         [HttpPost("api/v2/users/login")]
@@ -563,7 +566,7 @@ namespace fa2Server.Controllers
             ResObj["data"] = new JObject();
             ResObj["data"]["fscq"] = fscq.ToString(Formatting.None);
             ResObj["data"]["isDLSave"] =0;
-            ResObj["data"]["lastDCTime"] = account.lastDCTime;
+            ResObj["data"]["lastDCTime"] = account.lastDCTime.ToString();
             ResObj["data"]["login_time"] = DateTime.Now.AddHours(8).AsTimestamp();
             ResObj["data"]["net_id"] = account.net_id;
             ResObj["data"]["token"] = account.token;
@@ -573,17 +576,11 @@ namespace fa2Server.Controllers
             ResObj["data"]["start_time"] = 0;
 
             var tmpstr = account.uuid.MD5Hash().Substring(11, 6) +
-                "1504483658".MD5Hash().Substring(21, 6) +
+                account.firstPlayTime.MD5Hash().Substring(21, 6) +
                 account.lastDCTime.ToString().MD5Hash().Substring(5, 6);
 
             ResObj["data"]["token_v2"] = tmpstr.MD5Hash();
             ResObj["code"] = 0;
-            if (MemoryCacheService.Default.GetCache<string>("isfirst_" + account.id) != "1")
-            {
-                MemoryCacheService.Default.SetCache("login_" + account.id, account.player_data, 10);
-            }
-            else
-                MemoryCacheService.Default.RemoveCache("isfirst_" + account.id);
             return ResObj;
         }
         [HttpPost("api/v2/users/save_user")]
@@ -655,6 +652,27 @@ namespace fa2Server.Controllers
             ResObj["type"] = 2;
             return ResObj;
         }
+        //[HttpPost("api/v1/users/system_user_info")]
+        //public JObject system_user_info([FromBody] JObject value)
+        //{
+        //    JObject ResObj = new JObject();
+        //    ResObj["code"] = 1;
+        //    ResObj["type"] = 1;
+        //    F2.user account = getUserFromCache();
+
+        //    ResObj["data"] = new JObject();
+        //    ResObj["data"]["write_time"] = DateTime.Now.AsTimestamp();
+        //    ResObj["data"]["player_data"] = account.player_data;
+        //    ResObj["data"]["player_zhong_yao"] = account.player_zhong_yao;
+        //    ResObj["data"]["userdata"] = account.userdata;
+        //    ResObj["data"]["uuid"] = account.uuid;
+        //    ResObj["code"] = 0;
+        //    ResObj["type"] = 7;
+        //    return ResObj;
+        //}
+
+
+
 #region 商会
         [HttpPost("api/v2/shops/list")]
         public JObject shops_list([FromBody] JObject value)
@@ -995,6 +1013,29 @@ namespace fa2Server.Controllers
                                 }
                                 break;
                             }
+                        case "白嫖试炼塔":
+                            {
+                                if(account.mrbpslt < (int)(account.cz / 100) + 1)
+                                {
+                                //随机获得商会令 1-20w塔
+                                    int r = new Random().Next(10000, 200000);
+                                    dbh.Db.Updateable<F2.user>()
+                                        .SetColumns(ii => ii.jiaTa == (ii.jiaTa + r))
+                                        .Where(ii => ii.id == account.id).ExecuteCommand();
+
+                                    dbh.Db.Updateable<F2.user>()
+                                     .SetColumns(ii => ii.mrbpslt == (ii.mrbpslt + 1))
+                                     .Where(ii => ii.id == account.id).ExecuteCommand();
+
+                                    account.jiaTa += r;
+                                    ResObj["message"] = $"本次白嫖了 {r} 层试炼塔\n\n下次登录塔将增加 " + account.jiaTa;
+                                }
+                                else
+                                {
+                                    ResObj["message"] = $"今天你已白嫖过 {account.mrbpslt} 次！\n每充值 100 每日次数增加 1 次";
+                                }
+                                break;
+                            }
                         default:
                             if (shopItem.item_name.StartsWith("快速战斗+"))
                             {
@@ -1002,6 +1043,17 @@ namespace fa2Server.Controllers
                                 account.fastAck += zjcs;
                                 dbh.Db.Updateable(account).UpdateColumns(ii => ii.fastAck).ExecuteCommand();
                                 ResObj["message"] = "请退出游戏重新登录\n\n下次登录快速战斗将增加" + account.fastAck;
+                                break;
+                            }
+                            else if(shopItem.item_name.StartsWith("宗门币") && shopItem.item_name.EndsWith("w"))
+                            {
+                                var zjcs = int.Parse(shopItem.item_name.Substring("宗门币".Length).Replace("w", ""));
+                                zjcs *= 10000;
+                                dbh.Db.Updateable<F2.sect_member>()
+                                    .SetColumns(ii => ii.sect_coin == ii.sect_coin + zjcs)
+                                    .Where(ii => ii.playerId == account.id)
+                                    .ExecuteCommand();               
+                                ResObj["message"] = "成功";
                                 break;
                             }
                             else if (!string.IsNullOrEmpty(shopItem.giftcode))
@@ -1023,7 +1075,7 @@ namespace fa2Server.Controllers
                             }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     dbh.Db.RollbackTran();
                     ResObj["message"] = "购买失败！";
@@ -2835,7 +2887,9 @@ namespace fa2Server.Controllers
                     award.bossLevel = sects.boss_level;
                     award.playerId = sectMember.playerId;
                     //仅伤害前十的有奖励
-                    var dmglst = dbh.Db.Queryable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
+                    var dmglst = dbh.Db.Queryable<F2.sectBossDamage>()
+                        .Where(ii => ii.sectid == sectMember.sectId)
+                        .OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
                     foreach (var item in dmglst)
                     {
                         award.playerId = item;
