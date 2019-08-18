@@ -86,7 +86,7 @@ namespace fa2Server.Controllers
             var r = new Random();
 
             ResObj.Add(new JObject(
-                new JProperty("level", r.Next(1, 100)),
+                new JProperty("level", 20),  //拔草固定20分
                 new JProperty("playerDict", new JObject()),
                 new JProperty("type", "0")
             ));
@@ -124,6 +124,18 @@ namespace fa2Server.Controllers
             mi_Jing.enemyData = ResObj.ToString(Formatting.None);
             DbContext.Get().Db.Updateable(mi_Jing).UpdateColumns(ii => ii.enemyData).ExecuteCommand();                
             return ResObj;
+        }
+        private int getsjCount(JObject playerData)
+        {
+            int sjsl = 0;
+            foreach (var item in (JArray)playerData["playerDict"]["packageArr"])
+            {
+
+            }
+
+
+
+             return 0;
         }
         private bool compareJsonObj(JToken data1, JToken data2)
         {
@@ -322,8 +334,12 @@ namespace fa2Server.Controllers
         public static void NewDay()
         {
             var dbh = DbContext.Get();
-            dbh.Db.Updateable<F2.sects>(new F2.sects() { donate = 0 }).UpdateColumns(ii => ii.donate).Where(ii=>ii.id>0).ExecuteCommand();
-            dbh.Db.Updateable<F2.sect_member>(new F2.sect_member() { AttackBossCnt = 0, AckDimBossCnt=0 ,awardCnt = 0, donateCnt = 0 }).UpdateColumns(ii => new { ii.AttackBossCnt, ii.AckDimBossCnt, ii.awardCnt , ii.donateCnt }).Where(ii => ii.id > 0).ExecuteCommand();
+            dbh.Db.Updateable<F2.sects>(new F2.sects() { donate = 0, remain_dimension_boss_killCnt = 0 })
+                .UpdateColumns(ii => new { ii.donate, ii.remain_dimension_boss_killCnt })
+                .Where(ii => ii.id > 0).ExecuteCommand();
+            dbh.Db.Updateable<F2.sect_member>(new F2.sect_member() { AttackBossCnt = 0, AckDimBossCnt=0 ,awardCnt = 0, donateCnt = 0 })
+                .UpdateColumns(ii => new { ii.AttackBossCnt, ii.AckDimBossCnt, ii.awardCnt , ii.donateCnt })
+                .Where(ii => ii.id > 0).ExecuteCommand();
         }
         [Route("ctl/newday")]
         public string ctl_newday()
@@ -414,6 +430,7 @@ namespace fa2Server.Controllers
             string dct = ((DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000).ToString();
             HttpContext.Response.Headers.Add("Server-Time", dct);
             HttpContext.Response.Headers.Add("Sign", dataHashFilter.MD5Hash(ResStr + "QAbxK1exZYrK6WIO" + dct));
+            HttpContext.Response.Headers.Add("Sign2", dataHashFilter.MD5Hash(ResStr + "QAbxK1exZYrK6WIO" + dct + uuid));
             return ResStr;
         }
         [HttpPost("api/v2/users/register")]
@@ -484,7 +501,10 @@ namespace fa2Server.Controllers
                     player_data["playerDict"]["firstPlayTime"] = "1504483658";
                 }
             }
-
+            if (string.IsNullOrEmpty(account.firstPlayTime))
+            {
+                account.firstPlayTime = "1504483658";
+            }
             account.lastLoginTime = DateTime.Now;
             account.player_data = player_data.ToString(Formatting.None);
             if (dbh.Db.Updateable(account).ExecuteCommand() == 0)
@@ -504,6 +524,7 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v2/users/login")]
+        [HttpPost("api/v3/users/login")]
         public JObject login([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -548,6 +569,14 @@ namespace fa2Server.Controllers
             ResObj["data"]["token"] = account.token;
             ResObj["data"]["userdata"] = account.userdata;
             ResObj["data"]["uuid"] = account.uuid;
+            ResObj["data"]["end_time"] = 0;
+            ResObj["data"]["start_time"] = 0;
+
+            var tmpstr = account.uuid.MD5Hash().Substring(11, 6) +
+                "1504483658".MD5Hash().Substring(21, 6) +
+                account.lastDCTime.ToString().MD5Hash().Substring(5, 6);
+
+            ResObj["data"]["token_v2"] = tmpstr.MD5Hash();
             ResObj["code"] = 0;
             if (MemoryCacheService.Default.GetCache<string>("isfirst_" + account.id) != "1")
             {
@@ -2235,7 +2264,7 @@ namespace fa2Server.Controllers
             ResObj["type"] = 1;            
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
-            if (sectMember.sect_coin < 500)
+            if (sectMember.sect_coin < 抽奖费用*10)
             {
                 ResObj["message"] = "宗门币不足！";
                 return ResObj;
@@ -2246,10 +2275,10 @@ namespace fa2Server.Controllers
             try
             {
                 int optcnt = dbh.Db.Updateable<F2.sect_member>()
-                     .ReSetValue(ii => ii.sect_coin == ii.sect_coin - 500)
-                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count + 1)
+                     .ReSetValue(ii => ii.sect_coin == ii.sect_coin - 抽奖费用*10)
+                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count + 10)
                      .UpdateColumns(ii => new { ii.sect_coin, ii.smelt_count })
-                     .Where(ii => ii.id == sectMember.id && ii.sect_coin >= 500).ExecuteCommand();
+                     .Where(ii => ii.id == sectMember.id && ii.sect_coin >= 抽奖费用*10).ExecuteCommand();
                 if (optcnt != 1)
                 {
                     dbh.Db.RollbackTran();
@@ -2264,14 +2293,12 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "宗门币不足！";
                 return ResObj;
             }
-            JArray reward_item_info = new JArray();
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
 
             ResObj["data"] = new JObject(
-                new JProperty("sect_coin", sectMember.sect_coin - 500), 
+                new JProperty("sect_coin", sectMember.sect_coin - 抽奖费用), 
                 new JProperty("id", 0), 
-                new JProperty("advanced_smelt_count", sectMember.smelt_count + 1),
-                new JProperty("reward_item_info", reward_item_info)
+                new JProperty("advanced_smelt_count", sectMember.smelt_count + 10),
+                new JProperty("reward_item_info", 抽奖Android(10))
             );
             ResObj["code"] = 0;
             ResObj["message"] = "success";
@@ -2286,7 +2313,7 @@ namespace fa2Server.Controllers
             ResObj["type"] = 1;            
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
-            if (sectMember.sect_coin < 5000)
+            if (sectMember.sect_coin < 抽奖费用*100)
             {
                 ResObj["message"] = "宗门币不足！";
                 return ResObj;
@@ -2297,10 +2324,10 @@ namespace fa2Server.Controllers
             try
             {
                 int optcnt = dbh.Db.Updateable<F2.sect_member>()
-                     .ReSetValue(ii => ii.sect_coin == ii.sect_coin - 5000)
-                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count + 10)
+                     .ReSetValue(ii => ii.sect_coin == ii.sect_coin - 抽奖费用 * 100)
+                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count + 100)
                      .UpdateColumns(ii => new { ii.sect_coin, ii.smelt_count })
-                     .Where(ii => ii.id == sectMember.id && ii.sect_coin >= 5000).ExecuteCommand();
+                     .Where(ii => ii.id == sectMember.id && ii.sect_coin >= 抽奖费用 * 100).ExecuteCommand();
                 if (optcnt != 1)
                 {
                     dbh.Db.RollbackTran();
@@ -2315,23 +2342,23 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "宗门币不足！";
                 return ResObj;
             }
-            JArray reward_item_info = new JArray();
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //JArray reward_item_info = new JArray();
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "124"), new JProperty("itemType", "0")));
 
             ResObj["data"] = new JObject(
-                new JProperty("sect_coin", sectMember.sect_coin - 5000), 
+                new JProperty("sect_coin", sectMember.sect_coin - 抽奖费用 * 10), 
                 new JProperty("id", 0), 
                 new JProperty("advanced_smelt_count", sectMember.smelt_count + 10),
-                new JProperty("reward_item_info", reward_item_info)
+                new JProperty("reward_item_info", 抽奖Android(100))
             );
             ResObj["code"] = 0;
             ResObj["message"] = "success";
@@ -2346,7 +2373,7 @@ namespace fa2Server.Controllers
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
-            if (sectMember.smelt_count < 1000)
+            if (sectMember.smelt_count < 3000)
             {
                 ResObj["message"] = "高级炼制次数不足！";
                 return ResObj;
@@ -2357,9 +2384,9 @@ namespace fa2Server.Controllers
             try
             {
                 int optcnt = dbh.Db.Updateable<F2.sect_member>()
-                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count - 1000)
+                     .ReSetValue(ii => ii.smelt_count == ii.smelt_count - 3000)
                      .UpdateColumns(ii => new { ii.smelt_count })
-                     .Where(ii => ii.id == sectMember.id && ii.smelt_count >= 1000).ExecuteCommand();
+                     .Where(ii => ii.id == sectMember.id && ii.smelt_count >= 3000).ExecuteCommand();
                 if (optcnt != 1)
                 {
                     dbh.Db.RollbackTran();
@@ -2374,23 +2401,23 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "宗门币不足！";
                 return ResObj;
             }
-            JArray reward_item_info = new JArray();
-            reward_item_info.Add(new JObject(new JProperty("childType", "0"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "1"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "2"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "3"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "4"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "5"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "6"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "7"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "8"), new JProperty("itemType", "0")));
-            reward_item_info.Add(new JObject(new JProperty("childType", "9"), new JProperty("itemType", "0")));
+            //JArray reward_item_info = new JArray();
+            //reward_item_info.Add(new JObject(new JProperty("childType", "0"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "1"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "2"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "3"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "4"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "5"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "6"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "7"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "8"), new JProperty("itemType", "0")));
+            //reward_item_info.Add(new JObject(new JProperty("childType", "9"), new JProperty("itemType", "0")));
 
             ResObj["data"] = new JObject(
-                new JProperty("sect_coin", sectMember.sect_coin - 5000),
+                new JProperty("sect_coin", sectMember.sect_coin),
                 new JProperty("id", 0),
                 new JProperty("advanced_smelt_count", sectMember.smelt_count - 1000),
-                new JProperty("reward_item_info", reward_item_info)
+                new JProperty("reward_item_info", 抽奖Android(1, true))
             );
             ResObj["code"] = 0;
             ResObj["message"] = "success";
@@ -2409,7 +2436,7 @@ namespace fa2Server.Controllers
             "7,67",//先天灵府
             "7,70",//阴镜
             "7,71",//阳镜
-            "8,88",//先天魂铁
+            //"8,88",//先天魂铁
             "0,146",//生命神杖
             "0,190",//郭老邪的矿镐
             "1,64",//御影战甲
@@ -2417,12 +2444,13 @@ namespace fa2Server.Controllers
             "2,73",//佩奇指环
             "2,75",//普利尼心戒
             "2,78",//炼妖手套
-            "3,30",//试炼之心.先天
+            //"3,30",//试炼之心.先天
             "3,87",//初心项链
             "4,65",//蜡笔护镯
             "4,68",//猫咪的铃铛
             "4,71",//初心手镯
             "4,73",//炼妖狼爪手
+            "8,106",//极品仙玉
         };
         private static List<string> 神器 = new List<string>() {
             "5,66",//真言神盔
@@ -2430,7 +2458,7 @@ namespace fa2Server.Controllers
             "6,66",//风神靴
             "11,70",//木神盾
             "7,72",//阴阳镜
-            "8,89",//通灵神铁
+            //"8,89",//通灵神铁
             "0,182",//通灵神兵
             "1,68",//通灵神甲
             "1,70",//大地神甲
@@ -2474,7 +2502,7 @@ namespace fa2Server.Controllers
             {
                 string item = "";
                 int luckNum = r.Next(0, 1000);
-                if (luckNum == r.Next(0, 1000) || (i == 0 && b1))
+                if (luckNum == r.Next(0, 1000))
                 {
                     //千分之一，出先天
                     item = 先天[r.Next(0, 先天.Count)];
@@ -2499,6 +2527,11 @@ namespace fa2Server.Controllers
                     item = 超神器真[r.Next(0, 超神器真.Count)];
                     account.cjcs += 1;
                     DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
+                }
+                else if (i == 0 && b1)
+                {
+                    //保底先天
+                    item = 先天[r.Next(0, 先天.Count)];
                 }
                 else
                 {
@@ -2526,40 +2559,37 @@ namespace fa2Server.Controllers
             for (int i = 0; i < cnt; i++)
             {
                 string item = "";
-                try
+                int luckNum = r.Next(0, 1000);
+                if (luckNum == r.Next(0, 2000))
                 {
-                    int luckNum = r.Next(0, 1000);
-                    if (luckNum == r.Next(0, 1000) || (i == 0 && b1))
-                    {
-                        //千分之一，出先天
-                        item = 先天[r.Next(0, 先天.Count)];
-                        continue;
-                    }
-                    if (luckNum == r.Next(0, 10000))
-                    {
-                        //万分之一，出神器
-                        item = 神器[r.Next(0, 神器.Count)];
-                        continue;
-                    }
-                    if (luckNum == r.Next(0, 100000))
-                    {
-                        //十万分之一，超神器假
-                        item = 超神器假[r.Next(0, 超神器假.Count)];
-                        continue;
-                    }
-                    if (luckNum == r.Next(0, 1000000))
-                    {
-                        //百万分之一，超神器真
-                        item = 超神器真[r.Next(0, 超神器真.Count)];
-                        continue;
-                    }
+                    //千分之一，出先天
+                    item = 先天[r.Next(0, 先天.Count)];
+                }
+                else if (luckNum == r.Next(0, 20000))
+                {
+                    //万分之一，出神器
+                    item = 神器[r.Next(0, 神器.Count)];
+                }
+                else if (luckNum == r.Next(0, 200000))
+                {
+                    //十万分之一，超神器假
+                    item = 超神器假[r.Next(0, 超神器假.Count)];
+                }
+                else if (luckNum == r.Next(0, 2000000))
+                {
+                    //百万分之一，超神器真
+                    item = 超神器真[r.Next(0, 超神器真.Count)];
+                }
+                else if (i == 0 && b1)
+                {
+                    //保底先天
+                    item = 先天[r.Next(0, 先天.Count)];
+                }
+                else
                     item = "0,127";
-                }
-                finally
-                {
-                    var iarr = item.Split(",");
-                    reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0])));
-                }
+
+                var iarr = item.Split(",");
+                reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0])));
             }
             return reward_item_info;
         }
@@ -2805,7 +2835,7 @@ namespace fa2Server.Controllers
                     award.bossLevel = sects.boss_level;
                     award.playerId = sectMember.playerId;
                     //仅伤害前十的有奖励
-                    var dmglst = dbh.Db.Queryable<F2.sectBossDamage>().Take(10).Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
+                    var dmglst = dbh.Db.Queryable<F2.sectBossDamage>().Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
                     foreach (var item in dmglst)
                     {
                         award.playerId = item;
@@ -3555,19 +3585,31 @@ namespace fa2Server.Controllers
             }
             JArray enemyData = (JArray)JsonConvert.DeserializeObject(mjInfo.enemyData);
             int jf = 0;
+            int kccs = 0;
             switch (type)
             {
-                case 0: jf = enemyData[0]["level"].AsInt();break;
-                case 1: jf = enemyData[1]["level"].AsInt()*2;break;
+                case 0:
+                    jf = enemyData[0]["level"].AsInt();
+                    kccs = 1;
+                    break;
+                case 1: jf = enemyData[1]["level"].AsInt()*2;
+                    kccs = 10;
+                    break;
                 case 2:
                     jf = enemyData[2]["level"].AsInt() / 10;
                     if (jf < 5)
                     {
                         jf = 5;
                     }
+                    kccs = 10;
                     break;
                 default:
                     break;
+            }
+            if (mjInfo.leftnum < kccs)
+            {
+                ResObj["message"] = "挑战次数不足";
+                return ResObj;
             }
             F2.sect_member sectMember = updateSectInfo(account);
             //个人列表
@@ -3595,12 +3637,18 @@ namespace fa2Server.Controllers
             dbh.Db.BeginTran();
             try
             {
-                dbh.Db.Updateable<F2.mi_jing>()
+                int optcnt = dbh.Db.Updateable<F2.mi_jing>()
                     .ReSetValue(ii => ii.point == ii.point + jf)
-                    .ReSetValue(ii => ii.leftnum == ii.leftnum - 1)
-                    .UpdateColumns(ii => new { ii.point, ii.leftnum }).Where(ii => ii.id == mjInfo.id).ExecuteCommand();
+                    .ReSetValue(ii => ii.leftnum == ii.leftnum - kccs)
+                    .UpdateColumns(ii => new { ii.point, ii.leftnum })
+                    .Where(ii => ii.id == mjInfo.id && ii.leftnum >= kccs).ExecuteCommand();
+                if (optcnt!=1)
+                {
+                    ResObj["message"] = "挑战次数不足";
+                    return ResObj;
+                }
 
-                 dbh.Db.Updateable<F2.sects>()
+                dbh.Db.Updateable<F2.sects>()
                     .ReSetValue(ii => ii.mi_jing_point == ii.mi_jing_point + jf)
                     .UpdateColumns(ii => ii.mi_jing_point).Where(ii => ii.id == sectMember.sectId).ExecuteCommand();
                 if (type == 2)

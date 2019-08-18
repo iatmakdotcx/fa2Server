@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace MakC.Common
@@ -37,6 +38,15 @@ namespace MakC.Common
         public static bool Asbool(this string thisValue)
         {
             return !string.IsNullOrEmpty(thisValue) && booltrueTable.Contains(thisValue.ToLower());
+        }
+        public static string MD5Hash(this string input)
+        {
+            using (var md5 = MD5.Create())
+            {
+                var result = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+                var strResult = BitConverter.ToString(result);
+                return strResult.Replace("-", "").ToLower();
+            }
         }
     }
 }

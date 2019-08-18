@@ -35,6 +35,7 @@ namespace fa2Server
                 log.Error(exex.StackTrace);
             }
         }
+
         public async Task ApiRequest(HttpContext context)
         {
             context.Request.EnableBuffering();
@@ -43,6 +44,9 @@ namespace fa2Server
             var response = context.Response.Body;
             string ResponseBody = "";
             string ErrorMessage = "";
+            JObject JsonReqdata = new JObject();
+            string uuid = "";
+            int sg_version = 0;
             try
             {
                 context.Request.Path = context.Request.Path.ToString().Replace("//", "/");
@@ -54,12 +58,18 @@ namespace fa2Server
                         RequestBody = await reader.ReadToEndAsync();
                     }
 
-                    if (!checkReqSign(context, RequestBody))
+                    JsonReqdata = (JObject)JsonConvert.DeserializeObject(RequestBody);
+                    if (JsonReqdata["uuid"] != null)
+                    {
+                        uuid = JsonReqdata["uuid"].ToString();
+                    }
+                    sg_version = JsonReqdata["sg_version"].AsInt();
+                    if (!checkReqSign(context, RequestBody, uuid, sg_version))
                     {
                         ErrorMessage = "参数错误.";
                         return;
                     }
-                    ErrorMessage = checkUserInfo(context, RequestBody);
+                    ErrorMessage = checkUserInfo(context, JsonReqdata);
                     if (!string.IsNullOrEmpty(ErrorMessage))
                     {
                         return;
@@ -91,6 +101,7 @@ namespace fa2Server
             }
             finally
             {
+
                 MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
                 if (string.IsNullOrEmpty(ResponseBody))
                 {
@@ -101,15 +112,31 @@ namespace fa2Server
                     ResponseBody = ResObj.ToString(Newtonsoft.Json.Formatting.None);
                 }
                 string ServerTime = ((DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000).ToString();
-                string sign;
+                context.Response.Headers.Add("Server-Time", ServerTime);
                 if (context.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1)
                 {
-                    sign = SignData_132Plus(ServerTime, ResponseBody);
+                    //context.Response.Headers.Add("Sign", SignData_Andorid(ServerTime, ResponseBody));
+                    if (sg_version >= 138)
+                    {
+                        context.Response.Headers.Add("Sign2", SignData_Andorid(ServerTime, ResponseBody, uuid));
+                    }
+                    else
+                    {
+                        context.Response.Headers.Add("Sign", SignData_Andorid(ServerTime, ResponseBody, ""));
+                    }
                 }
                 else
-                    sign = SignData_Ios428Plus(ServerTime, ResponseBody);
-                context.Response.Headers.Add("Server-Time", ServerTime);
-                context.Response.Headers.Add("Sign", sign);
+                {
+                    if (sg_version >= 455)
+                    {
+                        context.Response.Headers.Add("Sign2", SignData_Ios428Plus(ServerTime, ResponseBody, uuid));
+                    }
+                    else
+                    {
+                        context.Response.Headers.Add("Sign", SignData_Ios428Plus(ServerTime, ResponseBody, ""));
+                    }
+                }
+                
                 using (var writer = new StreamWriter(response))
                 {
                     await writer.WriteAsync(ResponseBody);
@@ -128,11 +155,11 @@ namespace fa2Server
                 await ApiRequest(context);
             }
         }
-        private static bool checkReqSign(HttpContext context, string ReqData)
+        private static bool checkReqSign(HttpContext context, string ReqData, string uuid, int sg_version)
         {
-            string Req_sign = context.Request.Headers["sign"].ToString();
+            string Req_sign;
             string Req_ServerTime = context.Request.Headers["Server-Time"].ToString();
-            if (string.IsNullOrEmpty(Req_sign) || string.IsNullOrEmpty(Req_ServerTime))
+            if (string.IsNullOrEmpty(Req_ServerTime))
             {
                 return false;
             }
@@ -140,18 +167,35 @@ namespace fa2Server
             if (context.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1)
             {
                 //Android
-                TmpSign = SignData_132Plus(Req_ServerTime, ReqData);
+                if (sg_version>=138)
+                {
+                    TmpSign = SignData_Andorid(Req_ServerTime, ReqData, uuid);
+                    Req_sign = context.Request.Headers["sign2"].ToString();
+                }
+                else
+                {
+                    TmpSign = SignData_Andorid(Req_ServerTime, ReqData ,"");
+                    Req_sign = context.Request.Headers["sign"].ToString();
+                }
             }
             else
             {
                 //ios
-                TmpSign = SignData_Ios428Plus(Req_ServerTime, ReqData);
+                if (sg_version>=455)
+                {
+                    TmpSign = SignData_Ios428Plus(Req_ServerTime, ReqData, uuid);
+                    Req_sign = context.Request.Headers["sign2"].ToString();
+                }
+                else
+                {
+                    TmpSign = SignData_Ios428Plus(Req_ServerTime, ReqData, "");
+                    Req_sign = context.Request.Headers["sign"].ToString();
+                }
             }
             return Req_sign == TmpSign;
         }
-        private string checkUserInfo(HttpContext context, string ReqData)
-        {            
-            var data = (JObject)JsonConvert.DeserializeObject(ReqData);
+        private string checkUserInfo(HttpContext context, JObject data)
+        {                        
             F2.user account;
             var dbh = DbContext.Get();
             if (context.Request.Path.Value.EndsWith("register"))
@@ -227,20 +271,19 @@ namespace fa2Server
                 return strResult.Replace("-", "").ToLower();
             }
         }
-        private static string SignData_132Plus(string dct, string data)
+        private static string SignData_Andorid(string dct, string data, string uuid)
         {
             string k1 = MD5Hash(dct + "^" + dct + "!" + dct);
             string k2 = MD5Hash("zRBcyL2fy[ZsL7XJP$AIDJE*2DFF=#Dxjef2@LDLF");
             k2 = MD5Hash(dct + "#" + k2);
-            return MD5Hash(k1 + data.Trim() + k2 + "TeeKB0a1Dmdg8oTovsZOu3E0o2gNhrL2");
+            return MD5Hash(k1 + data.Trim() + k2 + "TeeKB0a1Dmdg8oTovsZOu3E0o2gNhrL2" + uuid);
         }
-        private static string SignData_Ios428Plus(string dct, string data)
+        private static string SignData_Ios428Plus(string dct, string data, string uuid)
         {
             string k1 = MD5Hash(dct + "^" + dct + "!" + dct);
             string k2 = MD5Hash("zRBcyL2fy[ZsL7XJP$AIDJE*2DFF=#Dxjef2@LDLF");
             k2 = MD5Hash(dct + "#" + k2);
-            //return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vd");
-            return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vw");
+            return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vw" + uuid);
         }
     }
 }

@@ -40,6 +40,8 @@ namespace MakC.Data.Model
             public int cjs { get; set; }
             public int cjcs { get; set; }
             public int cz { get; set; }
+            public int sjze { get; set; }
+            public string firstPlayTime { get; set; }
 
         }
 
