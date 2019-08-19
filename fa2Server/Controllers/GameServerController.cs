@@ -340,8 +340,8 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable<F2.sect_member>(new F2.sect_member() { AttackBossCnt = 0, AckDimBossCnt=0 ,awardCnt = 0, donateCnt = 0 })
                 .UpdateColumns(ii => new { ii.AttackBossCnt, ii.AckDimBossCnt, ii.awardCnt , ii.donateCnt })
                 .Where(ii => ii.id > 0).ExecuteCommand();
-            dbh.Db.Updateable(new F2.user() { mrbpslt = 0 })
-                .UpdateColumns(ii => new { ii.mrbpslt })
+            dbh.Db.Updateable(new F2.user() { mrbpslt = 0 , mrbpzmb = 0})
+                .UpdateColumns(ii => new { ii.mrbpslt, ii.mrbpzmb})
                 .Where(ii => ii.id > 0).ExecuteCommand();
         }
         [Route("ctl/newday")]
@@ -400,7 +400,7 @@ namespace fa2Server.Controllers
                 }
                 if (id == 2)
                 {
-                    dbh.Db.Updateable<F2.mi_jing>(new F2.mi_jing() { leftnum = 20 })
+                    dbh.Db.Updateable<F2.mi_jing>(new F2.mi_jing() { leftnum = 200 })
                     .UpdateColumns(ii => ii.leftnum)
                     .Where(ii => ii.isbm && !ii.isRobot).ExecuteCommand();
                 }
@@ -1017,15 +1017,12 @@ namespace fa2Server.Controllers
                             {
                                 if(account.mrbpslt < (int)(account.cz / 100) + 1)
                                 {
-                                //随机获得商会令 1-20w塔
+                                    //随机获得塔 1-20w塔
                                     int r = new Random().Next(10000, 200000);
                                     dbh.Db.Updateable<F2.user>()
                                         .SetColumns(ii => ii.jiaTa == (ii.jiaTa + r))
+                                        .SetColumns(ii => ii.mrbpslt == (ii.mrbpslt + 1))
                                         .Where(ii => ii.id == account.id).ExecuteCommand();
-
-                                    dbh.Db.Updateable<F2.user>()
-                                     .SetColumns(ii => ii.mrbpslt == (ii.mrbpslt + 1))
-                                     .Where(ii => ii.id == account.id).ExecuteCommand();
 
                                     account.jiaTa += r;
                                     ResObj["message"] = $"本次白嫖了 {r} 层试炼塔\n\n下次登录塔将增加 " + account.jiaTa;
@@ -1033,6 +1030,28 @@ namespace fa2Server.Controllers
                                 else
                                 {
                                     ResObj["message"] = $"今天你已白嫖过 {account.mrbpslt} 次！\n每充值 100 每日次数增加 1 次";
+                                }
+                                break;
+                            }
+                        case "白嫖宗门币":
+                            {
+                                if (account.mrbpzmb < (int)(account.cz / 100) + 1)
+                                {
+                                    //随机获得宗门币 100-200w宗门币
+                                    int r = new Random().Next(2000000, 4000000);
+                                    dbh.Db.Updateable<F2.sect_member>()
+                                        .SetColumns(ii => ii.sect_coin == (ii.sect_coin + r))
+                                        .Where(ii => ii.playerId == account.id).ExecuteCommand();
+
+                                    dbh.Db.Updateable<F2.user>()                                        
+                                        .SetColumns(ii => ii.mrbpzmb == (ii.mrbpzmb + 1))
+                                        .Where(ii => ii.id == account.id).ExecuteCommand();
+                                    
+                                    ResObj["message"] = $"本次白嫖了 {r} 宗门币！";
+                                }
+                                else
+                                {
+                                    ResObj["message"] = $"今天你已白嫖过 {account.mrbpzmb} 次！\n每充值 100 每日次数增加 1 次";
                                 }
                                 break;
                             }
@@ -2350,7 +2369,7 @@ namespace fa2Server.Controllers
                 new JProperty("sect_coin", sectMember.sect_coin - 抽奖费用), 
                 new JProperty("id", 0), 
                 new JProperty("advanced_smelt_count", sectMember.smelt_count + 10),
-                new JProperty("reward_item_info", 抽奖Android(10))
+                new JProperty("reward_item_info", 抽奖Android(10,ref account))
             );
             ResObj["code"] = 0;
             ResObj["message"] = "success";
@@ -2410,7 +2429,7 @@ namespace fa2Server.Controllers
                 new JProperty("sect_coin", sectMember.sect_coin - 抽奖费用 * 10), 
                 new JProperty("id", 0), 
                 new JProperty("advanced_smelt_count", sectMember.smelt_count + 10),
-                new JProperty("reward_item_info", 抽奖Android(100))
+                new JProperty("reward_item_info", 抽奖Android(100, ref account))
             );
             ResObj["code"] = 0;
             ResObj["message"] = "success";
@@ -2469,7 +2488,7 @@ namespace fa2Server.Controllers
                 new JProperty("sect_coin", sectMember.sect_coin),
                 new JProperty("id", 0),
                 new JProperty("advanced_smelt_count", sectMember.smelt_count - 1000),
-                new JProperty("reward_item_info", 抽奖Android(1, true))
+                new JProperty("reward_item_info", 抽奖Android(1, ref account, true))
             );
             ResObj["code"] = 0;
             ResObj["message"] = "success";
@@ -2566,7 +2585,7 @@ namespace fa2Server.Controllers
                     account.cjs += 1;
                     DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjs).ExecuteCommand();
                 }
-                else if ((account.cjcs == 0 || account.cz > 100) && luckNum == r.Next(0, 100000)) //没有充值的可以抽中一个神器
+                else if ((account.cjcs == 0 || account.cz > 600) && luckNum == r.Next(0, 100000)) //没有充值的可以抽中一个神器
                 {
                     //十万分之一，超神器假
                     item = 超神器假[r.Next(0, 超神器假.Count)];
@@ -2604,7 +2623,7 @@ namespace fa2Server.Controllers
                 );
             return jo.ToString(Formatting.None);
         }
-        private static JArray 抽奖Android(int cnt, bool b1 = false)
+        private static JArray 抽奖Android(int cnt, ref F2.user account, bool b1 = false)
         {
             JArray reward_item_info = new JArray();
             var r = new Random();
@@ -2621,16 +2640,22 @@ namespace fa2Server.Controllers
                 {
                     //万分之一，出神器
                     item = 神器[r.Next(0, 神器.Count)];
+                    account.cjs += 1;
+                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjs).ExecuteCommand();
                 }
-                else if (luckNum == r.Next(0, 200000))
+                else if ((account.cjcs == 0 || account.cz > 600) && luckNum == r.Next(0, 200000))
                 {
                     //十万分之一，超神器假
                     item = 超神器假[r.Next(0, 超神器假.Count)];
+                    account.cjcs += 1;
+                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
                 }
-                else if (luckNum == r.Next(0, 2000000))
+                else if (account.cz > 1000 && luckNum == r.Next(0, 2000000))
                 {
                     //百万分之一，超神器真
                     item = 超神器真[r.Next(0, 超神器真.Count)];
+                    account.cjcs += 1;
+                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
                 }
                 else if (i == 0 && b1)
                 {

@@ -76,7 +76,7 @@ namespace fa2Server
             var trigger = TriggerBuilder.Create()
                 .WithIdentity("myTrigger", "group1")
                 .StartNow()
-                .WithCronSchedule("0 0 0 * * ? *")
+                .WithCronSchedule("0 1 0 * * ? *")
             .Build();
             await sched.ScheduleJob(job, trigger);
         }

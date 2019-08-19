@@ -46,6 +46,10 @@ namespace MakC.Data.Model
             /// 每日白嫖试炼塔，次数=充值数/100+1
             /// </summary>
             public int mrbpslt { get; set; }
+            /// <summary>
+            /// 每日白嫖宗门币
+            /// </summary>
+            public int mrbpzmb { get; set; }
 
         }
 
