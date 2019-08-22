@@ -553,7 +553,7 @@ namespace fa2Server.Controllers
             fscq["DBLOWLV"] = setting.DBLOWLV;
             fscq["GIFT"] = (JToken)JsonConvert.DeserializeObject(setting.GIFT);
             fscq["GONGGAO"] = (JToken)JsonConvert.DeserializeObject(setting.GONGGAO);
-            fscq["HDZX"] = (JToken)JsonConvert.DeserializeObject(setting.HDZX);
+            fscq["HDZX"] = CacheHelper.GetExchangeData(account.isAndroid);
             fscq["HUODONG"] = (JToken)JsonConvert.DeserializeObject(setting.HUODONG);
             fscq["INREVIEW"] = setting.INREVIEW;
             fscq["LOWLEVEL"] = setting.LOWLEVEL;
@@ -1176,15 +1176,12 @@ namespace fa2Server.Controllers
                 return ResObj;
             }
             var dbh = DbContext.Get();
-            dbh.Db.BeginTran();
             int optCnt = dbh.Db.Updateable<F2.user>().ReSetValue(ii => ii.bdshl == (ii.bdshl - num)).UpdateColumns(ii => ii.bdshl).Where(ii => ii.id == account.id && ii.bdshl >= num).ExecuteCommand();
             if (optCnt != 1)
             {
-                dbh.Db.RollbackTran();
                 ResObj["message"] = "购买失败！";
                 return ResObj;
             }
-            dbh.Db.CommitTran();
             ResObj["data"] = new JObject();
             ResObj["data"]["ling"] = account.shl;
             ResObj["data"]["binding_ling"] = account.bdshl;
@@ -1203,6 +1200,38 @@ namespace fa2Server.Controllers
 
             //ResObj["code"] = 0;
             //ResObj["type"] = 41;
+            return ResObj;
+        }
+        [HttpPost("api/v3/shops/buy_quicken_item")]
+        public JObject shops_buy_quicken_item([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            int num = value["num"].ToString().AsInt();
+            F2.user account = getUserFromCache();
+            if (account.bdshl < num)
+            {
+                ResObj["message"] = "商会令不足！";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            int optCnt = dbh.Db.Updateable<F2.user>()
+                .SetColumns(ii => ii.bdshl == (ii.bdshl - num))
+                .Where(ii => ii.id == account.id && ii.bdshl >= num).ExecuteCommand();
+            if (optCnt != 1)
+            {
+                ResObj["message"] = "购买失败！";
+                return ResObj;
+            }
+
+            ResObj["data"] = new JObject(
+                new JProperty("start_time", DateTime.Now.AddHours(8).AsTimestamp()),
+                new JProperty("end_time", DateTime.Now.AddDays(3).AddHours(8).AsTimestamp())
+            );
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 99;
             return ResObj;
         }
         #endregion 商会
@@ -2627,6 +2656,7 @@ namespace fa2Server.Controllers
         {
             JArray reward_item_info = new JArray();
             var r = new Random();
+            int tzl = 100;
             for (int i = 0; i < cnt; i++)
             {
                 string item = "";
@@ -2663,11 +2693,15 @@ namespace fa2Server.Controllers
                     item = 先天[r.Next(0, 先天.Count)];
                 }
                 else
-                    item = "0,127";
-
+                {
+                    //啥都没中
+                    tzl += 100;
+                    continue;
+                }
                 var iarr = item.Split(",");
                 reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0])));
             }
+            reward_item_info.Add(new JObject(new JProperty("childType", "33"), new JProperty("itemType", "8"), new JProperty("itemNum", tzl), new JProperty("num", tzl)));
             return reward_item_info;
         }
         //高级炼制
@@ -2911,7 +2945,6 @@ namespace fa2Server.Controllers
                     F2.sectBossAward award = new F2.sectBossAward();
                     award.bossLevel = sects.boss_level;
                     award.playerId = sectMember.playerId;
-                    //仅伤害前十的有奖励
                     var dmglst = dbh.Db.Queryable<F2.sectBossDamage>()
                         .Where(ii => ii.sectid == sectMember.sectId)
                         .OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
@@ -2973,7 +3006,7 @@ namespace fa2Server.Controllers
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
             var dbh = DbContext.Get();
-            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Where(ii => ii.playerId == account.id).Select(ii => ii.bossLevel).ToList();
+            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Take(10).Where(ii => ii.playerId == account.id).Select(ii => ii.bossLevel).ToList();
             var list = new JArray();
             foreach (var item in awards)
             {
@@ -3003,7 +3036,7 @@ namespace fa2Server.Controllers
             dbh.Db.Deleteable<F2.sectBossAward>().In(awardItem.id).ExecuteCommand();
             sectMember.sect_coin += bosslevel * 100;
             dbh.Db.Updateable(sectMember).UpdateColumns(ii => ii.sect_coin).ExecuteCommand();
-            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Where(ii=>ii.playerId==account.id).Select(ii => ii.bossLevel).ToList();
+            List<int> awards = dbh.Db.Queryable<F2.sectBossAward>().Take(10).Where(ii=>ii.playerId==account.id).Select(ii => ii.bossLevel).ToList();
             var list = new JArray();
             foreach (var item in awards)
             {
@@ -3223,7 +3256,7 @@ namespace fa2Server.Controllers
             F2.user account = getUserFromCache();
             var dbh = DbContext.Get();
             F2.sect_member sectMember = updateSectInfo(account);
-            var awards = dbh.Db.Queryable<F2.sectDimensionBossAward>().Where(ii => ii.playerId == account.id).ToList();
+            var awards = dbh.Db.Queryable<F2.sectDimensionBossAward>().Take(10).Where(ii => ii.playerId == account.id).ToList();
             var list = new JArray();
             foreach (var item in awards)
             {

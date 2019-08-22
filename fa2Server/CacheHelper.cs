@@ -107,5 +107,50 @@ namespace fa2Server
             }
             return tmpData;
         }
+
+        public static JObject GetExchangeData(bool isAndroid)
+        {
+            var tmpisa = (isAndroid ? 2 : 1);
+            string key = DateTime.Now.ToString("yyyyMMdd")+"_"+ tmpisa;
+
+            JObject tmpData = MemoryCacheService.Default.GetCache<JObject>(key);
+            if (tmpData == null)
+            {
+                lock (MemoryCacheService.Default)
+                {
+                    tmpData = MemoryCacheService.Default.GetCache<JObject>(key);
+                    if (tmpData == null)
+                    {
+                        var w = "w" + ((int)(DateTime.Now.DayOfWeek)).ToString();
+                        var m = "m" + DateTime.Now.Day.ToString();
+
+                        var datas = DbContext.Get().Db.Queryable<F2.setting_hdzx>()
+                            .Where(ii=> 
+                                (ii.day.Contains("-") || ii.day.Contains(w) || ii.day.Contains(m)) &&
+                                (ii.platform==0 || ii.platform== tmpisa)
+                             ).ToList();
+                        JArray DHARR = new JArray();
+                        foreach (var item in datas)
+                        {
+                            DHARR.Add(new JObject(
+                                new JProperty("USE", new JObject(
+                                    new JProperty("itemType", item.f_itemType),
+                                    new JProperty("childType", item.f_childType),
+                                    new JProperty("num", item.f_count)
+                                    )),
+                                new JProperty("GET", new JObject(
+                                    new JProperty("itemType", item.t_itemType),
+                                    new JProperty("childType", item.t_childType),
+                                    new JProperty("num", item.t_count)
+                                    ))
+                             ));
+                        }
+                        tmpData = new JObject(new JProperty("TEXT", "兑换活动"), new JProperty("DHARR", DHARR));
+                        MemoryCacheService.Default.SetCache(key, tmpData, 24*60);
+                    }
+                }
+            }
+            return tmpData;
+        }
     }
 }

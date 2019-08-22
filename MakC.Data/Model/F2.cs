@@ -86,6 +86,28 @@ namespace MakC.Data.Model
             public int mi_jing_state { get; set; }
 
         }
+        [SugarTable("setting_hdzx")]
+        public class setting_hdzx
+        {
+            public setting_hdzx()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+           
+            public string f_itemType { get; set; }
+            public string f_childType { get; set; }
+            public int f_count { get; set; }
+            public string t_itemType { get; set; }
+            public string t_childType { get; set; }
+            public int t_count { get; set; }
+            /// <summary>
+            /// 0全平台，1苹果，2安卓
+            /// </summary>
+            public int platform { get; set; }           
+            public string day { get; set; }           
+        }
         [SugarTable("shops")]
         public class shop
         {
