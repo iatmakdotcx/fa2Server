@@ -39,6 +39,7 @@ namespace MakC.Data.Model
             public int fastAck { get; set; }
             public int cjs { get; set; }
             public int cjcs { get; set; }
+            public int cjCnt { get; set; }
             public int cz { get; set; }
             public int sjze { get; set; }
             public string firstPlayTime { get; set; }

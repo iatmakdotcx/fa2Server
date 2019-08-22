@@ -2600,6 +2600,7 @@ namespace fa2Server.Controllers
             int tzl = 100;
             for (int i = 0; i < cnt; i++)
             {
+                account.cjCnt++;
                 string item = "";
                 int luckNum = r.Next(0, 1000);
                 if (luckNum == r.Next(0, 1000))
@@ -2611,22 +2612,19 @@ namespace fa2Server.Controllers
                 {
                     //万分之一，出神器
                     item = 神器[r.Next(0, 神器.Count)];
-                    account.cjs += 1;
-                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjs).ExecuteCommand();
+                    account.cjs += 1;                    
                 }
                 else if ((account.cjcs == 0 || account.cz > 600) && luckNum == r.Next(0, 100000)) //没有充值的可以抽中一个神器
                 {
                     //十万分之一，超神器假
                     item = 超神器假[r.Next(0, 超神器假.Count)];
-                    account.cjcs += 1;
-                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
+                    account.cjcs += 1;                    
                 }
                 else if (account.cz > 1000 && luckNum == r.Next(0, 1000000))  //充值小于 1000 的不能抽真神器
                 {
                     //百万分之一，超神器真
                     item = 超神器真[r.Next(0, 超神器真.Count)];
-                    account.cjcs += 1;
-                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
+                    account.cjcs += 1;                    
                 }
                 else if (i == 0 && b1)
                 {
@@ -2643,7 +2641,7 @@ namespace fa2Server.Controllers
                 reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0]), new JProperty("itemNum", 1), new JProperty("num", 1)));
             }
             reward_item_info.Add(new JObject(new JProperty("childType", "33"), new JProperty("itemType", "8"), new JProperty("itemNum", tzl), new JProperty("num", tzl)));
-
+            DbContext.Get().Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjCnt }).ExecuteCommand();
             JObject jo = new JObject(
                 new JProperty("error", 0),
                 new JProperty("GETBODY", new JObject(
@@ -2659,33 +2657,31 @@ namespace fa2Server.Controllers
             int tzl = 100;
             for (int i = 0; i < cnt; i++)
             {
+                account.cjCnt++;
                 string item = "";
                 int luckNum = r.Next(0, 1000);
-                if (luckNum == r.Next(0, 2000))
+                if (luckNum == r.Next(0, 1000))
                 {
                     //千分之一，出先天
                     item = 先天[r.Next(0, 先天.Count)];
                 }
-                else if (luckNum == r.Next(0, 20000))
+                else if (luckNum == r.Next(0, 10000))
                 {
                     //万分之一，出神器
                     item = 神器[r.Next(0, 神器.Count)];
                     account.cjs += 1;
-                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjs).ExecuteCommand();
                 }
-                else if ((account.cjcs == 0 || account.cz > 600) && luckNum == r.Next(0, 200000))
+                else if ((account.cjcs == 0 || account.cz > 600) && luckNum == r.Next(0, 100000))
                 {
                     //十万分之一，超神器假
                     item = 超神器假[r.Next(0, 超神器假.Count)];
                     account.cjcs += 1;
-                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
                 }
-                else if (account.cz > 1000 && luckNum == r.Next(0, 2000000))
+                else if (account.cz > 1000 && luckNum == r.Next(0, 1000000))
                 {
                     //百万分之一，超神器真
                     item = 超神器真[r.Next(0, 超神器真.Count)];
                     account.cjcs += 1;
-                    DbContext.Get().Db.Updateable(account).UpdateColumns(ii => ii.cjcs).ExecuteCommand();
                 }
                 else if (i == 0 && b1)
                 {
@@ -2701,6 +2697,7 @@ namespace fa2Server.Controllers
                 var iarr = item.Split(",");
                 reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0])));
             }
+            DbContext.Get().Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjCnt }).ExecuteCommand();
             reward_item_info.Add(new JObject(new JProperty("childType", "33"), new JProperty("itemType", "8"), new JProperty("itemNum", tzl), new JProperty("num", tzl)));
             return reward_item_info;
         }
