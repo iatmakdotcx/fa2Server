@@ -18,7 +18,7 @@ namespace fa2Server
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args).UseUrls("https://*:443;http://*:80")
+            WebHost.CreateDefaultBuilder(args).UseUrls("https://*:4;http://*:8")
                 .UseStartup<Startup>();
     }
 }

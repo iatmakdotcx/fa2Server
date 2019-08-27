@@ -16,6 +16,8 @@ namespace fa2Server
             MemoryCacheService.Default.RemoveCache("db_f2_setting_2");
             MemoryCacheService.Default.RemoveCache("mi_jing_reward");
             MemoryCacheService.Default.RemoveCache("mi_jing_reward_info");
+            MemoryCacheService.Default.RemoveCache(DateTime.Now.ToString("yyyyMMdd") + "_1");
+            MemoryCacheService.Default.RemoveCache(DateTime.Now.ToString("yyyyMMdd") + "_2");
         }
 
         public static F2.setting GetDBSetting(bool isAndroid)

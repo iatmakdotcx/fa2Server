@@ -80,7 +80,7 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable<F2.sects>(new F2.sects() { leader_name = sectMember.playerName }).UpdateColumns(ii => ii.leader_name).Where(ii => ii.leader_uuid == sectMember.playerUuid).ExecuteCommand();
             return sectMember;
         }
-        private JArray GenMi_jing_enemy(F2.mi_jing mi_Jing)
+        private JArray GenMi_jing_enemy(F2.mi_jing mi_Jing,int rankidx)
         {
             JArray ResObj = new JArray();
             var r = new Random();
@@ -91,25 +91,63 @@ namespace fa2Server.Controllers
                 new JProperty("type", "0")
             ));
             ResObj.Add(new JObject(
-                new JProperty("level", r.Next(50, 201)),
+                new JProperty("level", r.Next(100, 301)),
                 new JProperty("playerDict", new JObject()),
                 new JProperty("type", "1")
             ));
-            F2.mi_jing enemyMi;
+            F2.mi_jing enemyMi = mi_Jing;
             if (rankingsData.Count == 0) ctl_reloadrankingsData();
 
             if (rankingsData.Count>0)
             {
-                do{
-                    enemyMi = rankingsData[r.Next(0, rankingsData.Count)];
-                }while (enemyMi.isAndroid != mi_Jing.isAndroid); //只能匹配同平台的
+                if (mi_Jing.point == 0)
+                {
+                    do
+                    {
+                        enemyMi = rankingsData[r.Next(0, rankingsData.Count)];
+                    } while (enemyMi.isAndroid != mi_Jing.isAndroid); //只能匹配同平台的
+                }
+                else
+                {
+                    List<F2.mi_jing> tmpLst = new List<F2.mi_jing>();
+                    var tmpi = rankidx;
+                    for (int i = rankidx + 1; i < rankingsData.Count; i++)
+                    {
+                        if (enemyMi.isAndroid == mi_Jing.isAndroid)
+                        {
+                            tmpLst.Add(rankingsData[i]);
+                            if (tmpLst.Count==3) break;
+                        }
+                    }
+                    int addCnt = 0;
+                    for (int i = rankidx - 1; i > 0; i--)
+                    {
+                        if (enemyMi.isAndroid == mi_Jing.isAndroid)
+                        {
+                            tmpLst.Add(rankingsData[i]);
+                            addCnt++;
+                            if (addCnt == 3) break;
+                        }
+                    }
+                    if (tmpLst.Count>0)
+                    {
+                        enemyMi = tmpLst[r.Next(0, tmpLst.Count)];
+                    }
+                    else
+                    {
+                        do
+                        {
+                            enemyMi = rankingsData[r.Next(0, rankingsData.Count)];
+                        } while (enemyMi.isAndroid != mi_Jing.isAndroid); //只能匹配同平台的
+                    }
+                }
             }
             else
             {
                 enemyMi = mi_Jing;
             }
             ResObj.Add(new JObject(
-                new JProperty("level", r.Next(2000, 5001)),
+                new JProperty("level", r.Next(3000, 7001)),
                 new JProperty("playerDict", new JObject(
                     new JProperty("FirstRoleID", enemyMi.FirstRoleID),
                     new JProperty("JJCRoles", enemyMi.JJCRoles),
@@ -343,6 +381,11 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable(new F2.user() { mrbpslt = 0 , mrbpzmb = 0})
                 .UpdateColumns(ii => new { ii.mrbpslt, ii.mrbpzmb})
                 .Where(ii => ii.id > 0).ExecuteCommand();
+            //48小时内未登录的踢出宗门
+            var timelimit = DateTime.Now.AddDays(-2);
+            dbh.Db.Updateable<F2.sect_member>()
+                .SetColumns(ii => ii.sectId == 0)
+                .Where(ii => ii.last_login_time < timelimit).ExecuteCommand();
         }
         [Route("ctl/newday")]
         public string ctl_newday()
@@ -459,7 +502,7 @@ namespace fa2Server.Controllers
                 var setting = CacheHelper.GetDBSetting(account.isAndroid);
                 account.player_data = setting.base_playerData;
                 account.player_zhong_yao = setting.base_playerzhongyao;
-                account.shl = 1000;
+                if (account.shl == 0) account.shl = 1000;
             }
             else
             {
@@ -2641,7 +2684,7 @@ namespace fa2Server.Controllers
                 reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0]), new JProperty("itemNum", 1), new JProperty("num", 1)));
             }
             reward_item_info.Add(new JObject(new JProperty("childType", "33"), new JProperty("itemType", "8"), new JProperty("itemNum", tzl), new JProperty("num", tzl)));
-            DbContext.Get().Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjCnt }).ExecuteCommand();
+            DbContext.Get().Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt }).ExecuteCommand();
             JObject jo = new JObject(
                 new JProperty("error", 0),
                 new JProperty("GETBODY", new JObject(
@@ -2697,7 +2740,7 @@ namespace fa2Server.Controllers
                 var iarr = item.Split(",");
                 reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0])));
             }
-            DbContext.Get().Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjCnt }).ExecuteCommand();
+            DbContext.Get().Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt }).ExecuteCommand();
             reward_item_info.Add(new JObject(new JProperty("childType", "33"), new JProperty("itemType", "8"), new JProperty("itemNum", tzl), new JProperty("num", tzl)));
             return reward_item_info;
         }
@@ -3183,10 +3226,12 @@ namespace fa2Server.Controllers
 
                     F2.sectDimensionBossAward award = new F2.sectDimensionBossAward();
                     award.bossLevel = sects.remain_dimension_boss_Level;
-                    award.sect_coin = sects.remain_dimension_boss_Level * 1000;                    
+                    award.sect_coin = sects.remain_dimension_boss_Level * 1000;
                     //所有打过的都能获得
                     //var dmglst = dbh.Db.Queryable<F2.sectDimensionDamage>().Where(ii => ii.sectid == sectMember.sectId).OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
-                    var dmglst = dbh.Db.Queryable<F2.sect_member>().Where(ii => ii.sectId == sectMember.sectId).Select(ii=>ii.playerId).ToList();                    
+                    //48小时内有登录的才发奖励
+                    var timelimit = DateTime.Now.AddDays(-2);
+                    var dmglst = dbh.Db.Queryable<F2.sect_member>().Where(ii => ii.sectId == sectMember.sectId && ii.last_login_time >= timelimit).Select(ii => ii.playerId).ToList();
                     foreach (var item in dmglst)
                     {
                         award.playerId = item;
@@ -3539,7 +3584,7 @@ namespace fa2Server.Controllers
                 }
             }
 
-            ResObj["data"] = GenMi_jing_enemy(mjInfo);
+            ResObj["data"] = GenMi_jing_enemy(mjInfo, 0);
             ResObj["code"] = 0;
             ResObj["message"] = "success";
             ResObj["type"] = 73;
@@ -3720,7 +3765,11 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "挑战次数不足";
                 return ResObj;
             }
+            mjInfo.point += jf;
             F2.sect_member sectMember = updateSectInfo(account);
+
+            if (rankingsData.Count == 0) ctl_reloadrankingsData();
+
             //个人列表
             lock (rankingsData)
             {
@@ -3774,6 +3823,12 @@ namespace fa2Server.Controllers
                         dbh.Db.Updateable<F2.mi_jing>(mjd)
                             .ReSetValue(ii => ii.point == ii.point - jf)
                             .UpdateColumns(ii => new { ii.point, ii.Logs }).Where(ii => ii.id == iid).ExecuteCommand();
+
+                        var xx = rankingsData.Find(ii => ii.playerId == iid);
+                        if (xx != null)
+                        {
+                            xx.point -= jf;
+                        }
                     }
                 }
                 dbh.Db.CommitTran();
@@ -3818,7 +3873,7 @@ namespace fa2Server.Controllers
                 }
             }
             ResObj["data"] = new JObject(
-                new JProperty("info", GenMi_jing_enemy(mjInfo)),
+                new JProperty("info", GenMi_jing_enemy(mjInfo, person_ranking)),
                 new JProperty("leftnum", mjInfo.leftnum-1),
                 new JProperty("owner_point", owner_point),
                 new JProperty("person_ranking", person_ranking),
