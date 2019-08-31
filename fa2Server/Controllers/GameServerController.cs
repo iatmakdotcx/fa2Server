@@ -695,28 +695,29 @@ namespace fa2Server.Controllers
             ResObj["type"] = 2;
             return ResObj;
         }
-        //[HttpPost("api/v1/users/system_user_info")]
-        //public JObject system_user_info([FromBody] JObject value)
-        //{
-        //    JObject ResObj = new JObject();
-        //    ResObj["code"] = 1;
-        //    ResObj["type"] = 1;
-        //    F2.user account = getUserFromCache();
+        [HttpPost("api/v1/users/system_user_info")]
+        public JObject system_user_info([FromBody] JObject value)
+        {
+            //"qiangzhiLoadFlag":true
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            F2.user account = getUserFromCache();
 
-        //    ResObj["data"] = new JObject();
-        //    ResObj["data"]["write_time"] = DateTime.Now.AsTimestamp();
-        //    ResObj["data"]["player_data"] = account.player_data;
-        //    ResObj["data"]["player_zhong_yao"] = account.player_zhong_yao;
-        //    ResObj["data"]["userdata"] = account.userdata;
-        //    ResObj["data"]["uuid"] = account.uuid;
-        //    ResObj["code"] = 0;
-        //    ResObj["type"] = 7;
-        //    return ResObj;
-        //}
+            ResObj["data"] = new JObject();
+            ResObj["data"]["write_time"] = DateTime.Now.AsTimestamp();
+            ResObj["data"]["player_data"] = account.player_data;
+            ResObj["data"]["player_zhong_yao"] = account.player_zhong_yao;
+            ResObj["data"]["userdata"] = account.userdata;
+            ResObj["data"]["uuid"] = account.uuid;
+            ResObj["code"] = 0;
+            ResObj["type"] = 7;
+            return ResObj;
+        }
 
 
 
-#region 商会
+        #region 商会
         [HttpPost("api/v2/shops/list")]
         public JObject shops_list([FromBody] JObject value)
         {

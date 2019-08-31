@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace fa2Server
@@ -225,10 +226,26 @@ namespace fa2Server
                 {
                     return "你的存档数据已损坏！";
                 }
+                //if (data["token"] != null && data["token"].ToString() != account.token)
+                //{
+                //    return "账号已在其它地方登录";
+                //}
+            }else if (context.Request.Path.Value.EndsWith("system_user_info"))
+            {
+                string uuid = data["uuid"]?.ToString();
+                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
+                if (account == null)
+                {
+                    return "用户不存在！";
+                }
+                if (account.isBan)
+                {
+                    return "你的存档数据已损坏！";
+                }
             }
             else
             {
-                string uuid = data["uuid"]?.ToString();                
+                string uuid = data["uuid"]?.ToString();
                 account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
                 if (account == null)
                 {
@@ -281,5 +298,116 @@ namespace fa2Server
             k2 = MD5Hash(dct + "#" + k2);
             return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vw" + uuid);
         }
+        public static string AESDecrypt(string Data, string token, int ServerTime)
+        {
+            string key;
+            string iv;
+            ios460_getAESKey(token, ServerTime, out key, out iv);
+
+            //使用AES（CBC）解密
+            Byte[] original = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream(Convert.FromBase64String(Data)))
+                {
+                    using (CryptoStream Decryptor = new CryptoStream(Memory,
+                    Aes.CreateDecryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Read))
+                    {
+                        using (MemoryStream originalMemory = new MemoryStream())
+                        {
+                            Byte[] Buffer = new Byte[1024];
+                            Int32 readBytes = 0;
+                            while ((readBytes = Decryptor.Read(Buffer, 0, Buffer.Length)) > 0)
+                            {
+                                originalMemory.Write(Buffer, 0, readBytes);
+                            }
+                            original = originalMemory.ToArray();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            return Encoding.UTF8.GetString(original);
+        }
+
+        public static string AESEncrypt(string Data, string token, int ServerTime)
+        {
+            string key;
+            string iv;
+            ios460_getAESKey(token, ServerTime, out key, out iv);
+
+            //使用AES（CBC）加密
+            Byte[] Cryptograph = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream())
+                {
+                    using (CryptoStream Encryptor = new CryptoStream(Memory,
+                    Aes.CreateEncryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Write))
+                    {
+                        Byte[] plainBytes = Encoding.UTF8.GetBytes(Data);
+                        Encryptor.Write(plainBytes, 0, plainBytes.Length);
+                        Encryptor.FlushFinalBlock();
+                        Cryptograph = Memory.ToArray();
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            return Convert.ToBase64String(Cryptograph);
+        }
+        public static void ios460_getAESKey(string token, int ServerTime, out string key, out string iv)
+        {
+            string key1 = MD5Hash(token + (ServerTime / 29).ToString());
+            string key2 = MD5Hash(((ServerTime % 29) + ServerTime).ToString());
+            string key3 = MD5Hash((ServerTime % 29).ToString() + MD5Hash(token).Substring(4, 16));
+            string key4 = MD5Hash(key1 + key2 + key3);
+
+            string v13 = key1 + key1;
+            string v14 = key2 + key2;
+            string v15 = key3 + key3;
+            string v16 = key4 + key4;
+            string v17;
+            string v18;
+            if ((ServerTime & 1) > 0)
+            {
+                v17 = v13;
+                v18 = v15;
+                v15 = v16;
+            }
+            else
+            {
+                v17 = v14;
+                v18 = v16;
+                v14 = v13;
+            }
+            int v8 = ServerTime % 29;
+            string v19 = v17.Substring(v8, 8);
+            string v20 = v18.Substring(v8 + 8, 8);
+            string v21 = v14.Substring(v8 + 16, 8);
+            string v22 = v15.Substring(v8 + 24, 8);
+            key = v19 + v20 + v21 + v22;
+            string v25 = "IDbOjeDXWJHiJDYClEkArSWWZCHMtxcTnxBfNnoyyPxkdAClolEIRlWSkAIyqSfuwFBWrjZcFYWGUHneMszYaZCzBHhkDamPMKUzkytuiJImLpWeSXWuNcPoliCQsKpB".Substring(ServerTime % 120, 8);
+            int v56 = ServerTime % 24;
+            string v26 = v16.Substring(v56, 8);
+            if ((ServerTime & 1) > 0)
+            {
+                iv = v25 + v26;
+            }
+            else
+            {
+                iv = v26 + v25;
+            }
+        }
+
     }
 }
