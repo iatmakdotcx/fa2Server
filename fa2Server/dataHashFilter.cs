@@ -37,7 +37,7 @@ namespace fa2Server
             }
         }
 
-        public async Task ApiRequest(HttpContext context)
+        public async Task ApiRequest_Old(HttpContext context)
         {
             context.Request.EnableBuffering();
 
@@ -141,6 +141,93 @@ namespace fa2Server
                 }
             }
         }
+        public async Task ApiRequest(HttpContext context)
+        {
+            context.Request.EnableBuffering();
+
+            var request = context.Request.Body;
+            var response = context.Response.Body;
+            string ResponseBody = "";
+            string ErrorMessage = "";
+            JObject JsonReqdata = new JObject();
+            string uuid = "";
+            string token = "";
+            int sg_version = 0;
+            try
+            {
+                if (context.Request.Method == "POST")
+                {
+                    context.Request.Path = context.Request.Path.ToString().Replace("//", "/");
+                    using (var newRequest = new MemoryStream())
+                    {
+                        string RequestBody = "";
+                        using (var reader = new StreamReader(request))
+                        {
+                            RequestBody = await reader.ReadToEndAsync();
+                        }
+                        JsonReqdata = DecryptRequest(context, ref RequestBody, out uuid);
+                        if (JsonReqdata == null)
+                        {
+                            ErrorMessage = "参数错误.";
+                            return;
+                        }
+                        sg_version = JsonReqdata["sg_version"].AsInt();
+                        token = context.Request.Headers["Token"];
+                        ErrorMessage = checkUserInfo(context, JsonReqdata);
+                        if (!string.IsNullOrEmpty(ErrorMessage))
+                        {
+                            return;
+                        }
+                        using (var newResponse = new MemoryStream())
+                        {
+                            context.Response.Body = newResponse;
+                            using (var writer = new StreamWriter(newRequest))
+                            {
+                                await writer.WriteAsync(RequestBody);
+                                await writer.FlushAsync();
+                                newRequest.Position = 0;
+                                context.Request.Body = newRequest;
+                                await _next(context);
+                            }
+                            using (var reader = new StreamReader(newResponse))
+                            {
+                                newResponse.Position = 0;
+                                ResponseBody = await reader.ReadToEndAsync();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception exex)
+            {                
+                log.Error(exex.Message);
+                log.Error(exex.StackTrace);
+                ErrorMessage = "系统错误";
+            }
+            finally
+            {
+                if (string.IsNullOrEmpty(ResponseBody))
+                {
+                    JObject ResObj = new JObject();
+                    ResObj["code"] = 1;
+                    ResObj["type"] = 1;
+                    ResObj["message"] = ErrorMessage;
+                    ResponseBody = ResObj.ToString(Newtonsoft.Json.Formatting.None);
+                }
+
+                MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
+                long ServerTime = (DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000;
+                context.Response.Headers.Add("Server-Time", ServerTime.ToString());
+                ResponseBody = Response_AESEncrypt(ResponseBody, uuid, token, ServerTime);
+                context.Response.Headers.Add("Sign2", Response_ios460_getSign(ResponseBody, token));
+
+                using (var writer = new StreamWriter(response))
+                {
+                    await writer.WriteAsync(ResponseBody);
+                    await writer.FlushAsync();
+                }
+            }
+        }
         public async Task Invoke(HttpContext context)
         {
             if (!context.Request.Path.StartsWithSegments("/api"))
@@ -193,27 +280,14 @@ namespace fa2Server
         }
         private string checkUserInfo(HttpContext context, JObject data)
         {                        
-            F2.user account;
-            var dbh = DbContext.Get();
+            F2.user account= MemoryCacheService.Default.GetCache<F2.user>("account_" + context.TraceIdentifier);
+            
             if (context.Request.Path.Value.EndsWith("register"))
             {
                 return "";
             }
-            //else if (context.Request.Path.Value.EndsWith("first_login"))
-            //{
-            //    account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == data["user_name"].ToString());
-            //    if (account == null)
-            //    {
-            //        return "用户不存在！";
-            //    }
-            //    if (account.password != data["password"].ToString())
-            //    {
-            //        return "密码错误";
-            //    }
-            //}
             else if (context.Request.Path.Value.EndsWith("login"))
             {
-                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == data["user_name"].ToString());
                 if (account == null)
                 {
                     return "用户不存在！";
@@ -226,14 +300,8 @@ namespace fa2Server
                 {
                     return "你的存档数据已损坏！";
                 }
-                //if (data["token"] != null && data["token"].ToString() != account.token)
-                //{
-                //    return "账号已在其它地方登录";
-                //}
             }else if (context.Request.Path.Value.EndsWith("system_user_info"))
             {
-                string uuid = data["uuid"]?.ToString();
-                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
                 if (account == null)
                 {
                     return "用户不存在！";
@@ -245,8 +313,6 @@ namespace fa2Server
             }
             else
             {
-                string uuid = data["uuid"]?.ToString();
-                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
                 if (account == null)
                 {
                     return "用户不存在！";
@@ -267,11 +333,67 @@ namespace fa2Server
                         return "无效的网络请求!";
                     }
                     account.net_id = net_id;
+                    var dbh = DbContext.Get();
                     dbh.Db.Updateable(account).UpdateColumns(ii => ii.net_id).ExecuteCommand();
                 }
             }
-            MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
             return "";
+        }
+        private static JObject DecryptRequest(HttpContext context, ref string bodyData, out string uuid)
+        {
+            uuid = null;
+            if (!bodyData.StartsWith("{\"data\":\""))
+            {
+                return null;
+            }
+            bodyData = bodyData.Substring(9, bodyData.Length - 11).Replace("\\","");
+            string token = context.Request.Headers["Token"];
+            string sign2 = ios460_getSign(bodyData, token);
+            if (sign2 != context.Request.Headers["Sign2"])
+            {
+                return null;
+            }
+            long ServerTime = long.Parse(context.Request.Headers["Server-Time"]);
+            F2.user account = null;
+            var dbh = DbContext.Get();
+            JObject dJo = null;
+            if (context.Request.Path.Value.EndsWith("register"))
+            {
+                return null;
+            }else
+            if (context.Request.Path.Value.EndsWith("first_login"))
+            {
+                bodyData = AESDecrypt(bodyData, "", token, ServerTime);
+                if (bodyData == null)
+                {
+                    return null;
+                }
+                dJo = (JObject)JsonConvert.DeserializeObject(bodyData);
+                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == dJo["user_name"].ToString());
+            } else if (!string.IsNullOrEmpty(token))
+            {
+                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.token == token);
+                if (account == null)
+                {
+                    return null;
+                }
+                bodyData = AESDecrypt(bodyData, account.uuid, token, ServerTime);
+                if (bodyData == null)
+                {
+                    return null;
+                }
+                dJo = (JObject)JsonConvert.DeserializeObject(bodyData);
+                uuid = account.uuid;
+            }
+            if (account == null)
+            {
+                return null;
+            }
+            
+            
+            
+            MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
+            return dJo;
         }
 
 
@@ -298,11 +420,12 @@ namespace fa2Server
             k2 = MD5Hash(dct + "#" + k2);
             return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vw" + uuid);
         }
-        public static string AESDecrypt(string Data, string token, int ServerTime)
+
+        public static string AESDecrypt(string Data, string uuid, string token, long ServerTime)
         {
             string key;
             string iv;
-            ios460_getAESKey(token, ServerTime, out key, out iv);
+            ios460_getAESKey(uuid, token, ServerTime, out key, out iv);
 
             //使用AES（CBC）解密
             Byte[] original = null;
@@ -334,12 +457,11 @@ namespace fa2Server
             }
             return Encoding.UTF8.GetString(original);
         }
-
-        public static string AESEncrypt(string Data, string token, int ServerTime)
+        public static string AESEncrypt(string Data, string uuid, string token, long ServerTime)
         {
             string key;
             string iv;
-            ios460_getAESKey(token, ServerTime, out key, out iv);
+            ios460_getAESKey(uuid, token, ServerTime, out key, out iv);
 
             //使用AES（CBC）加密
             Byte[] Cryptograph = null;
@@ -365,9 +487,9 @@ namespace fa2Server
             }
             return Convert.ToBase64String(Cryptograph);
         }
-        public static void ios460_getAESKey(string token, int ServerTime, out string key, out string iv)
+        public static void ios460_getAESKey(string uuid, string token, long ServerTime, out string key, out string iv)
         {
-            string key1 = MD5Hash(token + (ServerTime / 29).ToString());
+            string key1 = MD5Hash(uuid + (ServerTime / 29).ToString());
             string key2 = MD5Hash(((ServerTime % 29) + ServerTime).ToString());
             string key3 = MD5Hash((ServerTime % 29).ToString() + MD5Hash(token).Substring(4, 16));
             string key4 = MD5Hash(key1 + key2 + key3);
@@ -390,14 +512,14 @@ namespace fa2Server
                 v18 = v16;
                 v14 = v13;
             }
-            int v8 = ServerTime % 29;
+            int v8 = (int)(ServerTime % 29);
             string v19 = v17.Substring(v8, 8);
             string v20 = v18.Substring(v8 + 8, 8);
             string v21 = v14.Substring(v8 + 16, 8);
             string v22 = v15.Substring(v8 + 24, 8);
             key = v19 + v20 + v21 + v22;
-            string v25 = "IDbOjeDXWJHiJDYClEkArSWWZCHMtxcTnxBfNnoyyPxkdAClolEIRlWSkAIyqSfuwFBWrjZcFYWGUHneMszYaZCzBHhkDamPMKUzkytuiJImLpWeSXWuNcPoliCQsKpB".Substring(ServerTime % 120, 8);
-            int v56 = ServerTime % 24;
+            string v25 = "IDbOjeDXWJHiJDYClEkArSWWZCHMtxcTnxBfNnoyyPxkdAClolEIRlWSkAIyqSfuwFBWrjZcFYWGUHneMszYaZCzBHhkDamPMKUzkytuiJImLpWeSXWuNcPoliCQsKpB".Substring((int)(ServerTime % 120), 8);
+            int v56 = (int)(ServerTime % 24);
             string v26 = v16.Substring(v56, 8);
             if ((ServerTime & 1) > 0)
             {
@@ -407,6 +529,157 @@ namespace fa2Server
             {
                 iv = v26 + v25;
             }
+        }
+
+        public static string Response_AESDecrypt(string Data, string uuid, string token, long ServerTime)
+        {
+            string key;
+            string iv;
+            Response_ios460_getAESKey(uuid, token, ServerTime, out key, out iv);
+
+            //使用AES（CBC）解密
+            Byte[] original = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream(Convert.FromBase64String(Data)))
+                {
+                    using (CryptoStream Decryptor = new CryptoStream(Memory,
+                    Aes.CreateDecryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Read))
+                    {
+                        using (MemoryStream originalMemory = new MemoryStream())
+                        {
+                            Byte[] Buffer = new Byte[1024];
+                            Int32 readBytes = 0;
+                            while ((readBytes = Decryptor.Read(Buffer, 0, Buffer.Length)) > 0)
+                            {
+                                originalMemory.Write(Buffer, 0, readBytes);
+                            }
+                            original = originalMemory.ToArray();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            return Encoding.UTF8.GetString(original);
+        }
+        public static string Response_AESEncrypt(string Data, string uuid, string token, long ServerTime)
+        {
+            string key;
+            string iv;
+            Response_ios460_getAESKey(uuid, token, ServerTime, out key, out iv);
+
+            //使用AES（CBC）加密
+            Byte[] Cryptograph = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream())
+                {
+                    using (CryptoStream Encryptor = new CryptoStream(Memory,
+                    Aes.CreateEncryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Write))
+                    {
+                        Byte[] plainBytes = Encoding.UTF8.GetBytes(Data);
+                        Encryptor.Write(plainBytes, 0, plainBytes.Length);
+                        Encryptor.FlushFinalBlock();
+                        Cryptograph = Memory.ToArray();
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            return Convert.ToBase64String(Cryptograph);
+        }
+        public static void Response_ios460_getAESKey(string uuid, string token, long ServerTime, out string key, out string iv)
+        {
+            string key1 = MD5Hash(uuid + (ServerTime / 27).ToString());
+            string key2 = MD5Hash(((ServerTime % 27) + ServerTime).ToString());
+            string key3 = MD5Hash((ServerTime % 27).ToString() + MD5Hash(token).Substring(4, 16));
+            string key4 = MD5Hash(key1 + key2 + key3);
+
+            string v14 = key1 + key1;
+            string v15 = key2 + key2;
+            string v16 = key3 + key3;
+            string v17 = key4 + key4;
+            string v18;
+            string v19;
+            if ((ServerTime & 1) > 0)
+            {
+                v18 = v15;
+                v19 = v17;
+                v15 = v14;
+            }
+            else
+            {
+                v18 = v14;
+                v19 = v16;
+                v16 = v17;
+            }
+            int v8 = (int)(ServerTime % 27);
+            string v20 = v18.Substring(v8, 8);
+            string v21 = v19.Substring(v8 + 8, 8);
+            string v22 = v15.Substring(v8 + 16, 8);
+            string v23 = v16.Substring(v8 + 24, 8);
+            key = v20 + v21 + v22 + v23;
+            string v25 = "4Sxw7ir3Ul9inXLtvsWVaHTCZY809sWQmf3pUzQ3WqGrJJnTMFFA4Oz9oQIT8wRii7l00ORvTWU4Oh9Ao6ezjK1LXeOq8FIpL7xSsjYhi2Ks7UoYOGk8TPxIzJAda38b".Substring((int)(ServerTime % 119), 9);
+            long v56 = ServerTime % 25;
+            string v26 = v17.Substring((int)v56, 7);
+            if ((ServerTime & 1) > 0)
+            {
+                iv = v25 + v26;
+            }
+            else
+            {
+                iv = v26 + v25;
+            }
+        }
+
+        public static string ios460_getSign(string data, string token)
+        {
+            string v61 = MD5Hash(data);
+            string v62 = MD5Hash(token);
+            var tmpstring =
+                v61.Substring(17, 3) +
+                v62.Substring(22, 2) +
+                v62.Substring(14, 2) +
+                v62.Substring(6, 3) +
+                v61.Substring(29, 1) +
+                v61.Substring(4, 1) +
+                v62.Substring(23, 4) +
+                v62.Substring(18, 2) +
+                v62.Substring(11, 3) +
+                v62.Substring(25, 3) +
+                v61.Substring(13, 3) +
+                v61.Substring(16, 4) +
+                v62.Substring(11, 1);
+            return MD5Hash(tmpstring);
+        }
+
+        public static string Response_ios460_getSign(string data, string token)
+        {
+            string v13 = MD5Hash(data);
+            string v14 = MD5Hash(token);
+            var tmpstring = v13.Substring(13, 3) +
+            v14.Substring(28, 2) +
+            v14.Substring(4, 2) +
+            v14.Substring(16, 3) +
+            v13.Substring(15, 1) +
+            v13.Substring(24, 1) +
+            v14.Substring(23, 4) +
+            v14.Substring(11, 2) +
+            v14.Substring(7, 3) +
+            v14.Substring(25, 3) +
+            v13.Substring(19, 3) +
+            v13.Substring(3, 4) +
+            v14.Substring(22, 1);
+            return MD5Hash(tmpstring);
         }
 
     }

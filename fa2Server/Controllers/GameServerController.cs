@@ -566,6 +566,7 @@ namespace fa2Server.Controllers
             ResObj["data"]["player_zhong_yao"] = account.player_zhong_yao;
             ResObj["data"]["userdata"] = account.userdata;
             ResObj["data"]["uuid"] = account.uuid;
+            ResObj["data"]["token_key"] = account.token;
             ResObj["code"] = 0;
             return ResObj;
         }
@@ -623,6 +624,7 @@ namespace fa2Server.Controllers
                 account.lastDCTime.ToString().MD5Hash().Substring(5, 6);
 
             ResObj["data"]["token_v2"] = tmpstr.MD5Hash();
+            ResObj["data"]["token_key"] = account.token;
             ResObj["code"] = 0;
             return ResObj;
         }
