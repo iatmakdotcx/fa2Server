@@ -66,6 +66,9 @@ namespace fa2Server
                             uuid = JsonReqdata["uuid"].ToString();
                         }
                         sg_version = JsonReqdata["sg_version"].AsInt();
+                        var account = DbContext.Get().GetEntityDB<F2.user>().GetSingle(ii => ii.uuid == uuid);
+                        if (account != null)
+                            MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
                         if (!checkReqSign(context, RequestBody, uuid, sg_version))
                         {
                             ErrorMessage = "参数错误.";
@@ -230,7 +233,7 @@ namespace fa2Server
         }
         public async Task Invoke(HttpContext context)
         {
-            if (!context.Request.Path.StartsWithSegments("/api"))
+            if (!context.Request.Path.StartsWithSegments("/api")&& context.Request.Path!= "/v1/check_code")
             {
                 await NormalRequest(context);
             }
@@ -279,15 +282,14 @@ namespace fa2Server
             return Req_sign == TmpSign;
         }
         private string checkUserInfo(HttpContext context, JObject data)
-        {                        
-            F2.user account= MemoryCacheService.Default.GetCache<F2.user>("account_" + context.TraceIdentifier);
-            
+        {                                    
             if (context.Request.Path.Value.EndsWith("register"))
             {
                 return "";
             }
             else if (context.Request.Path.Value.EndsWith("login"))
             {
+                F2.user account = MemoryCacheService.Default.GetCache<F2.user>("account_" + context.TraceIdentifier);
                 if (account == null)
                 {
                     return "用户不存在！";
@@ -302,6 +304,7 @@ namespace fa2Server
                 }
             }else if (context.Request.Path.Value.EndsWith("system_user_info"))
             {
+                F2.user account = MemoryCacheService.Default.GetCache<F2.user>("account_" + context.TraceIdentifier);
                 if (account == null)
                 {
                     return "用户不存在！";
@@ -313,6 +316,7 @@ namespace fa2Server
             }
             else
             {
+                F2.user account = MemoryCacheService.Default.GetCache<F2.user>("account_" + context.TraceIdentifier);
                 if (account == null)
                 {
                     return "用户不存在！";
@@ -389,9 +393,6 @@ namespace fa2Server
             {
                 return null;
             }
-            
-            
-            
             MemoryCacheService.Default.SetCache("account_" + context.TraceIdentifier, account, 1);
             return dJo;
         }

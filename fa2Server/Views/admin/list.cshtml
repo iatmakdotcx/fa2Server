@@ -1,0 +1,32 @@
+﻿@model fa2Server.Models.allUserLst;
+@{
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+    <style>
+        table{text-align:center;}
+        table tr:hover{background-color:Highlight;}
+    </style>
+</head>
+
+<body>
+    <h1>allUser</h1>
+    <table>
+        <tr><th>username</th><th>playername</th><th>platform</th><th>ban</th><th>uid</th></tr>
+        @foreach (var item in Model.list)
+        {
+        <tr><td>@item.username</td><td>@item.playerName</td><td>@(item.isAndroid ? "A" : "I")</td><td>@(item.isBan ? "x" : "")</td><td>@item.uuid</td></tr>
+        }
+    </table>
+    <script>
+        document.querySelectorAll("tr+tr").forEach(function (a) {
+            a.addEventListener("click", function () {
+                location.href = "/u?uid=" + this.querySelectorAll("td")[4].innerText;
+            });
+        });
+    </script>
+</body>
+</html>

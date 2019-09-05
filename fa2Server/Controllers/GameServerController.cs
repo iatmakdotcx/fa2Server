@@ -473,10 +473,6 @@ namespace fa2Server.Controllers
                     ResStr = oldg.itemData;
                 }
             }
-            string dct = ((DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000).ToString();
-            HttpContext.Response.Headers.Add("Server-Time", dct);
-            HttpContext.Response.Headers.Add("Sign", dataHashFilter.MD5Hash(ResStr + "QAbxK1exZYrK6WIO" + dct));
-            HttpContext.Response.Headers.Add("Sign2", dataHashFilter.MD5Hash(ResStr + "QAbxK1exZYrK6WIO" + dct + uuid));
             return ResStr;
         }
         [HttpPost("api/v2/users/register")]

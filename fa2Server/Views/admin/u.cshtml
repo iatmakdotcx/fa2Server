@@ -1,0 +1,98 @@
+﻿@model fa2Server.Models.uModel;
+@{
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+    <style>
+        .tool a{margin:0 20px}
+    </style>
+</head>
+
+<body>
+    <a href="/97ca200f-471f-487d-9722-178f8c858fb9"></a>
+    <div>
+        <div>用户名:@Model.user?.username</div>
+        <div>角色名:@Model.sectInfo?.playerName</div>
+    </div>
+    <br />
+    <br />
+    <div>
+        充值
+        <form action="/u/p" method="post">
+            <input type="hidden" name="uuid" value="@Context.Request.Query["uid"]" />
+            <div>金额<input type="number" step="1" min="1" name="amount" value="1" /> 必须是0以上的整数</div>
+            <label id="pinfo">增加令;充值积分（兑换码）</label>
+            <input type="submit" value="确定" />
+        </form>
+    </div>
+    <br />
+    <br />
+    <div>
+        <form action="/u/u" method="post">
+            <input type="hidden" name="uuid" value="@Context.Request.Query["uid"]" />
+            <div>封号<input type="checkbox" value="true" @((Model.user != null && Model.user.isBan) ? "checked=checked" : "") name="isBan" /></div>
+            <div>密码<input type="text" name="password" value="@Model.user?.password" /></div>
+            @*<div>充值<input type="text" name="cz" value="@Model.user?.cz" /></div>*@
+            <div>商会令<input type="text" name="shl" value="@Model.user?.shl" /></div>
+            <div>绑定令<input type="text" name="bdshl" value="@Model.user?.bdshl" /></div>
+            <div>提示：@Model.user?.ClientCheatMsg</div>
+            <input type="submit" value="保存" />
+        </form>
+    </div>
+    <br />
+    <br />
+    <div>
+        <form action="/u/s" method="post">
+            <input type="hidden" name="playerUuid" value="@Context.Request.Query["uid"]" />
+            <div>已加入宗门id<input type="text" name="sectId" value="@Model.sectInfo?.sectId" /> 0为无宗门</div>
+            <div>宗门职位<input type="text" name="position_level" value="@Model.sectInfo?.position_level" /> 0为掌门，7为门外</div>
+            <div>宗门币<input type="text" name="sect_coin" value="@Model.sectInfo?.sect_coin" /></div>
+            <div>每日可挑战Boss次数<input type="text" name="CanAttackBossCnt" value="@Model.sectInfo?.CanAttackBossCnt" /></div>
+            <div>每日可挑战次元Boss次数<input type="text" name="CanAckDimBossCnt" value="@Model.sectInfo?.CanAckDimBossCnt" /></div>
+            <input type="submit" value="保存" />
+        </form>
+    </div>
+    <br />
+    <br />
+    <div>
+        发放礼包--物品
+        <div class="tool">
+            <input type="button" data-itemtype="8" data-itemid="91" value="神晶" />
+            <input type="button" data-itemtype="8" data-itemid="105" value="普通玉" />
+            <input type="button" data-itemtype="8" data-itemid="33" value="挑战令" />
+            <input type="button" data-itemtype="14" data-itemid="80" value="三连击宝石" />
+            <input type="button" data-itemtype="4" data-itemid="75" value="仙龙镯" />
+        </div>
+        <form action="/u/g" method="post" id="reward">
+            <input type="hidden" name="uuid" value="@Context.Request.Query["uid"]" />
+            <div>兑换码<input type="number" step="1" min="1" name="code" value="1" /> 必须是0以上的整数</div>
+            <div>type<input type="text" name="itemtype" value="" /></div>
+            <div>id<input type="text" name="itemid" value="" /></div>
+            <div>数量<input type="number" step="1" min="1" name="num" value="1" /> 必须是0以上的整数</div>
+            <input type="submit" value="保存" />
+        </form>
+        发放礼包--积分
+        <form action="/u/h" method="post">
+            <input type="hidden" name="uuid" value="@Context.Request.Query["uid"]" />
+            <div>兑换码<input type="number" step="1" min="1" name="code" value="1" /> 必须是0以上的整数</div>
+            <div>数量<input type="number" step="1" min="1" name="num" value="1" /> 必须是0以上的整数</div>
+            <input type="submit" value="保存" />
+        </form>
+    </div>
+    <script>
+        document.querySelectorAll(".tool>input").forEach(function (a) {
+            a.addEventListener("click", function () {
+                document.querySelector("#reward input[name='itemtype']").value = this.getAttribute("data-itemtype");
+                document.querySelector("#reward input[name='itemid']").value = this.getAttribute("data-itemid");
+            });
+        });
+        @if (Context.Request.Query["ok"]=="1")
+        {
+            <text>alert("成功")</text>
+        }
+    </script>
+</body>
+</html>
