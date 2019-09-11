@@ -165,6 +165,8 @@ namespace MakC.Data.Model
             public int mi_jing_point { get; set; }
             public int remain_dimension_boss_CankillCnt { get; set; }
             public int remain_dimension_boss_killCnt { get; set; }
+            public int boss_CankillCnt { get; set; }
+            public int boss_killCnt { get; set; }
         }
         [SugarTable("sect_member")]
         public class sect_member

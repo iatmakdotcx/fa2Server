@@ -373,10 +373,14 @@ namespace fa2Server
                     return null;
                 }
                 dJo = (JObject)JsonConvert.DeserializeObject(bodyData);
-                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.username == dJo["user_name"].ToString());
+                account = dbh.Db.Queryable<F2.user>()
+                    //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
+                    .First(ii => ii.username == dJo["user_name"].ToString());
             } else if (!string.IsNullOrEmpty(token))
             {
-                account = dbh.GetEntityDB<F2.user>().GetSingle(ii => ii.token == token);
+                account = dbh.Db.Queryable<F2.user>()
+                    //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
+                    .First(ii => ii.token == token);
                 if (account == null)
                 {
                     return null;
