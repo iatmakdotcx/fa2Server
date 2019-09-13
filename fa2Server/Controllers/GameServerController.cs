@@ -109,36 +109,27 @@ namespace fa2Server.Controllers
                 }
                 else
                 {
-                    //匹配方式，先找比自己高的，如果没有再比自己底的
-                    var oyl = rankingsData.OrderByDescending(ii => ii.point).ToList();
-
-                    var tmpi = rankidx-2;
-                    while (tmpi >= 0)
+                    //匹配方式，过滤出所有相同平台的人，最近的6个随机
+                    var oyl = rankingsData.Where(ii => ii.point > 0 && ii.isAndroid == mi_Jing.isAndroid).OrderByDescending(ii => ii.point).ToList();
+                    List<F2.mi_jing> ml = new List<F2.mi_jing>();
+                    for (int i = 0; i < oyl.Count(); i++)
                     {
-                        if(oyl[tmpi].isAndroid == mi_Jing.isAndroid)
+                        var item = oyl[i];
+                        if (item.id==mi_Jing.id)
                         {
-                            enemyMi = oyl[tmpi];
+                            var tmpix = i - 3;
+                            if (tmpix < 0) tmpix = 0;
+                            for (int j = tmpix; j < Math.Min(oyl.Count(),7); j++)
+                            {
+                                ml.Add(oyl[j]);
+                            }
                             break;
                         }
-                        tmpi--;
                     }
-                    if (enemyMi==null)
+                    if (ml.Count > 0)
                     {
-                        tmpi = rankidx;
-                        while (tmpi < oyl.Count)
-                        {
-                            if (oyl[tmpi].isAndroid == mi_Jing.isAndroid)
-                            {
-                                enemyMi = oyl[tmpi];
-                                break;
-                            }
-                            tmpi++;
-                        }
-                    }
-                    if (enemyMi == null)
-                    {
-                        enemyMi = mi_Jing;
-                    }                    
+                        enemyMi = ml[r.Next(0, ml.Count)];
+                    }else enemyMi = mi_Jing;
                 }
             }
             else
@@ -1068,6 +1059,153 @@ namespace fa2Server.Controllers
                                 {
                                     ResObj["message"] = $"今天你已白嫖过 {account.mrbpzmb} 次！\n每充值 100 每日次数增加 1 次";
                                 }
+                                break;
+                            }
+                        case "快速宗门炼制":
+                            {
+                                F2.sect_member sectMember = updateSectInfo(account);
+                                int sscnt = 0;
+                                while (sectMember.sect_coin >= 抽奖费用 * 100)
+                                {
+                                    var vdata = 抽奖_IOS(dbh,100, ref account);
+
+                                    F2.giftCode gif = new F2.giftCode();
+                                    gif.create_at = DateTime.Now;
+                                    gif.uuid = account.uuid;
+                                    gif.code = 1;
+                                    gif.itemData = vdata;
+                                    dbh.Db.Insertable(gif).AddQueue();
+                                    sectMember.sect_coin -= 抽奖费用 * 100;
+                                    sscnt++;
+                                }
+                                sectMember.smelt_count += sscnt * 100;
+                                dbh.Db.Updateable(sectMember)
+                                          .UpdateColumns(ii => new { ii.sect_coin, ii.smelt_count })
+                                          .Where(ii => ii.id == sectMember.id).ExecuteCommand();
+                                dbh.Db.SaveQueues();
+
+                                ResObj["message"] = $"成功炼制{sscnt}次。兑换码:1";
+                                break;
+                            }
+                        case "中秋特别宝箱":
+                            {
+                                var r = new Random();
+                                var r1 = r.Next(0, 10000);
+                                if (r1 < 1000)
+                                {
+                                    var l = 100;
+                                    ResObj["message"] = $"恭喜你抽中了。\n\n商会令:" + l;
+                                    dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.shl == (ii.shl + l)).Where(ii => ii.id == account.id).ExecuteCommand();
+                                    break;
+                                }
+                                if (r1 < 2000)
+                                {
+                                    //50分支一中随机令，最高1000令
+                                    var l = r.Next(1, 11) * 100;
+                                    ResObj["message"] = $"恭喜你抽中了。\n\n商会令:" + l;
+                                    dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.shl == (ii.shl + l)).Where(ii => ii.id == account.id).ExecuteCommand();
+                                    break;
+                                }
+                                if (r1 < 4000)
+                                {
+                                    //3分之一  100-200w宗门币
+                                    int l = new Random().Next(2000000, 20000001);
+                                    dbh.Db.Updateable<F2.sect_member>()
+                                        .SetColumns(ii => ii.sect_coin == (ii.sect_coin + l))
+                                        .Where(ii => ii.playerId == account.id).ExecuteCommand();
+
+                                    ResObj["message"] = $"恭喜你抽中了。\n\n宗门币:" + l;
+                                    break;
+                                }
+                                if (r1 == 8888 || r1 == 9999)
+                                {
+                                    ResObj["message"] = $"恭喜你。\n\n。。。。\n\n你什么都没中";
+                                    break;
+                                }
+                                
+                                JArray reward_item_info = new JArray();
+                                if (r1 >= 8000)
+                                {
+                                    //五分之一 中装备
+                                    string item;
+                                    if (account.cz > 1000 && r1 >= 9990)
+                                    {
+                                        //1‰,真神器
+                                        account.cheatMsg += ",中秋抽奖真超神器+1";
+                                        account.cjcs += 1;
+                                        ResObj["message"] = $"恭喜你抽中了。\n\n真·神器！快去兑换！";
+                                        item = 超神器真[r.Next(0, 超神器真.Count)];
+                                    }
+                                    else if((account.cjcs == 0 || account.cz > 600) && r1 >9900)
+                                    {
+                                        //百分之一
+                                        account.cheatMsg += ",中秋抽奖超神器+1";
+                                        account.cjcs += 1;
+                                        ResObj["message"] = $"恭喜你抽中了。\n\n超神器！快去兑换！";
+                                        item = 超神器假[r.Next(0, 超神器假.Count)];
+                                    }
+                                    else
+                                    {
+                                        //普通神器
+                                        account.cheatMsg += ",中秋抽奖神器+1";
+                                        account.cjs += 1;
+                                        ResObj["message"] = $"恭喜你抽中了。\n\n神器！快去兑换！";
+                                        item = 神器[r.Next(0, 神器.Count)];
+                                    }
+                                    var iarr = item.Split(",");
+                                    reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0]), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                }
+                                else
+                                {
+                                    //二分之一到这里
+                                    var r2 = r.Next(0, 10);
+                                    if (r2 == 0)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 100), new JProperty("num", 100)));
+                                    }
+                                    else if (r2 == 1)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 100), new JProperty("num", 100)));
+                                    }
+                                    else if (r2 == 2)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "96"), new JProperty("itemType", "8"), new JProperty("itemNum", 100), new JProperty("num", 100)));
+                                    }else if (r2 == 3)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "96"), new JProperty("itemType", "8"), new JProperty("itemNum", 200), new JProperty("num", 200)));
+                                    }else if (r2 == 4)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "81"), new JProperty("itemType", "14"), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "82"), new JProperty("itemType", "14"), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "83"), new JProperty("itemType", "14"), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                    }
+                                    else if (r2 == 5)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 1000), new JProperty("num", 1000)));
+                                    }
+                                    else if (r2 == 6)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 400), new JProperty("num", 400)));
+                                    }
+                                    else
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "96"), new JProperty("itemType", "8"), new JProperty("itemNum", 50), new JProperty("num", 50)));
+                                    }
+                                    ResObj["message"] = $"恭喜你。\n\n抽中了点什么，快去兑换试试";
+                                }
+                                dbh.Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt }).ExecuteCommand();
+                                JObject jo = new JObject(
+                                    new JProperty("error", 0),
+                                    new JProperty("GETBODY", new JObject(
+                                        new JProperty("itemGetArr", reward_item_info)
+                                        ))
+                                    );
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                gif.code = 1;
+                                gif.itemData = jo.ToString(Formatting.None);
+                                dbh.Db.Insertable(gif).ExecuteCommand();
                                 break;
                             }
                         default:
@@ -2550,8 +2688,8 @@ namespace fa2Server.Controllers
             "11,78",//清风盾
             "11,80",//试炼盾.先天
             "7,67",//先天灵府
-            "7,70",//阴镜
-            "7,71",//阳镜
+            //"7,70",//阴镜
+            //"7,71",//阳镜
             //"8,88",//先天魂铁
             "0,146",//生命神杖
             "0,190",//郭老邪的矿镐
@@ -2611,7 +2749,7 @@ namespace fa2Server.Controllers
         //一个宗门一天极限2000w
         const int 抽奖费用 = 10000;
         
-        private string 抽奖_IOS(int cnt,ref F2.user account,bool b1 = false)
+        private string 抽奖_IOS(DbContext dbh, int cnt,ref F2.user account,bool b1 = false)
         {
             JArray reward_item_info = new JArray();
             var r = new Random();
@@ -2659,7 +2797,7 @@ namespace fa2Server.Controllers
                 reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0]), new JProperty("itemNum", 1), new JProperty("num", 1)));
             }
             reward_item_info.Add(new JObject(new JProperty("childType", "33"), new JProperty("itemType", "8"), new JProperty("itemNum", tzl), new JProperty("num", tzl)));
-            DbContext.Get().Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt }).ExecuteCommand();
+            dbh.Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt }).ExecuteCommand();
             JObject jo = new JObject(
                 new JProperty("error", 0),
                 new JProperty("GETBODY", new JObject(
@@ -2733,8 +2871,8 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "宗门币不足！";
                 return ResObj;
             }
-            var vdata = 抽奖_IOS(10, ref account);
             var dbh = DbContext.Get();
+            var vdata = 抽奖_IOS(dbh, 10, ref account);
             dbh.Db.BeginTran();
             try
             {
@@ -2784,8 +2922,8 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "宗门币不足！";
                 return ResObj;
             }
-            var vdata = 抽奖_IOS(100, ref account);
             var dbh = DbContext.Get();
+            var vdata = 抽奖_IOS(dbh, 100, ref account);
             dbh.Db.BeginTran();
             try
             {
@@ -2832,8 +2970,8 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "高级炼制次数不足！";
                 return ResObj;
             }
-            var vdata = 抽奖_IOS(10, ref account, true);
             var dbh = DbContext.Get();
+            var vdata = 抽奖_IOS(dbh, 10, ref account, true);
             dbh.Db.BeginTran();
             try
             {
