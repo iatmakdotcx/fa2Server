@@ -1,0 +1,29 @@
+﻿@{
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+</head>
+
+<body>
+    <form action="/aus" method="post">
+        <div>用户名<input type="text" name="username" maxlength="20" /> </div>
+        <div>密码<input type="text" name="pwd" maxlength="20" /> </div>
+        <div>商会令<input type="number" step="1" min="1" name="shl" value="1000"/> </div>
+        <input type="submit" value="保存" />
+    </form>
+    <script>
+        @if (Context.Request.Query["ok"]=="1")
+        {
+            <text>alert("成功");
+        location.href = "/97ca200f-471f-487d-9722-178f8c858fb9"
+    </text>
+        }else if (Context.Request.Query["ok"]=="0"){
+
+        <text>alert("失败！可能是账号已存在");</text>
+        }
+    </script>
+</body>
+</html>

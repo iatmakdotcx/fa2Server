@@ -37,6 +37,7 @@ namespace MakC.Data.Model
             public int shlUsed { get; set; }
             public DateTime lastGetShlTime { get; set; }
             public int fastAck { get; set; }
+            public int smleftTL { get; set; }
             public int cjs { get; set; }
             public int cjcs { get; set; }
             public int cjCnt { get; set; }

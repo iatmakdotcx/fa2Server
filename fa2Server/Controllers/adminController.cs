@@ -12,9 +12,22 @@ namespace fa2Server.Controllers
     [Route("97ca200f-471f-487d-9722-178f8c858fb9")]
     public class adminController : Controller
     {
+
+        private bool checkCookie()
+        {
+            var sx = DbContext.Get().Db.Queryable<F2.user>().Select(ii => new { ii.id, ii.password }).First(ii => ii.id == 1);
+            return HttpContext.Request.Cookies["utok"] == sx.password;
+        }
         public IActionResult Index()
         {
-            return View();
+            if (checkCookie())
+            {
+                return showlist();
+            }
+            else
+            {
+                return View();
+            }
         }
 
         [HttpPost]
@@ -25,7 +38,12 @@ namespace fa2Server.Controllers
             {
                 return RedirectToAction("Index");
             }
-            var value = dbh.Db.Queryable<F2.user, F2.sect_member>((t1, t2) => new object[] { SqlSugar.JoinType.Left, t1.id == t2.playerId })
+            HttpContext.Response.Cookies.Append("utok", name);
+            return showlist();
+        }
+        private IActionResult showlist()
+        {
+            var value = DbContext.Get().Db.Queryable<F2.user, F2.sect_member>((t1, t2) => new object[] { SqlSugar.JoinType.Left, t1.id == t2.playerId })
                 .Select((t1, t2) => new { t1.id, t1.uuid, t1.username, t1.isAndroid, t1.isBan, t2.playerName })
                 .OrderBy(t1 => t1.username)
                 .ToList();
@@ -43,11 +61,14 @@ namespace fa2Server.Controllers
                     playerName = item.playerName
                 });
             }
-            return View(model);
+            return View("list",model);
         }
+
         [Route("/u")]
         public IActionResult u(string uid)
         {
+            if (!checkCookie()) return NotFound();
+
             var dbh = DbContext.Get();
             uModel model = new uModel();
             model.user= dbh.Db.Queryable<F2.user>().IgnoreColumns(ii => new { ii.player_data, ii.player_zhong_yao }).First(ii => ii.uuid == uid);
@@ -176,6 +197,37 @@ namespace fa2Server.Controllers
             }
             gavegifthyJiFen(uuid, code, num);
             return Redirect("/u?uid=" + uuid + "&ok=1");
+        }
+        [Route("/au")]
+
+        public IActionResult au()
+        {
+            return View();
+        }
+        [HttpPost("/aus")]
+
+        public IActionResult aus(string username, string pwd, int shl)
+        {
+            if (!checkCookie()) return NotFound();
+
+            int aa = DbContext.Get().Db.Insertable(new F2.user()
+            {
+                username=username,
+                password=pwd,
+                shl=shl,
+                lastLoginTime=DateTime.Now,
+                lastGetShlTime=DateTime.Now
+            }).ExecuteCommand();
+
+            if (aa==1)
+            {
+                return Redirect("/au?ok=1");
+            }
+            else
+            {
+                return Redirect("/au?ok=0");
+            }
+
         }
     }
 }

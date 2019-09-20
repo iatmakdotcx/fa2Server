@@ -522,11 +522,17 @@ namespace fa2Server.Controllers
                 player_data["playerDict"]["smTGLV"] = player_data["playerDict"]["smTGLV"].AsInt() + account.ShenMu;
                 account.ShenMu = 0;
             }
-            if (player_data["playerDict"]["haveKSNum"] != null)
+            if (player_data["playerDict"]["haveKSNum"] != null && account.fastAck > 0)
             {
                 //快速战斗次数
                 player_data["playerDict"]["haveKSNum"] = player_data["playerDict"]["haveKSNum"].AsInt() - account.fastAck;
                 account.fastAck = 0;
+            }
+            if (player_data["playerDict"]["leftTL"] != null && account.smleftTL > 0)
+            {
+                //神墓体力
+                player_data["playerDict"]["leftTL"] = player_data["playerDict"]["leftTL"].AsInt() + account.smleftTL;
+                account.smleftTL = 0;
             }
             //修复firstplayTime（天数太少，装备太好导致秘境闪退
             if (player_data["playerDict"]["firstPlayTime"] != null)
@@ -1193,7 +1199,7 @@ namespace fa2Server.Controllers
                                     }
                                     ResObj["message"] = $"恭喜你。\n\n抽中了点什么，快去兑换试试";
                                 }
-                                dbh.Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt }).ExecuteCommand();
+                                dbh.Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt, ii.cheatMsg }).ExecuteCommand();
                                 JObject jo = new JObject(
                                     new JProperty("error", 0),
                                     new JProperty("GETBODY", new JObject(
@@ -1209,12 +1215,20 @@ namespace fa2Server.Controllers
                                 break;
                             }
                         default:
-                            if (shopItem.item_name.StartsWith("快速战斗+"))
+                            if (shopItem.item_name.StartsWith("神墓体力+"))
+                            {
+                                var zjcs = int.Parse(shopItem.item_name.Substring("神墓体力+".Length));
+                                account.smleftTL += zjcs;
+                                dbh.Db.Updateable(account).UpdateColumns(ii => ii.smleftTL).ExecuteCommand();
+                                ResObj["message"] = "请退出游戏重新登录\n\n下次登录神墓体力将增加 " + account.smleftTL;
+                                break;
+                            }
+                            else if (shopItem.item_name.StartsWith("快速战斗+"))
                             {
                                 var zjcs = int.Parse(shopItem.item_name.Substring("快速战斗+".Length));
                                 account.fastAck += zjcs;
                                 dbh.Db.Updateable(account).UpdateColumns(ii => ii.fastAck).ExecuteCommand();
-                                ResObj["message"] = "请退出游戏重新登录\n\n下次登录快速战斗将增加" + account.fastAck;
+                                ResObj["message"] = "请退出游戏重新登录\n\n下次登录快速战斗将增加 " + account.fastAck;
                                 break;
                             }
                             else if(shopItem.item_name.StartsWith("宗门币") && shopItem.item_name.EndsWith("w"))
@@ -3095,12 +3109,17 @@ namespace fa2Server.Controllers
                     sects.boss_HP = 0;
                     dbh.Db.Updateable(sects).UpdateColumns(ii => ii.boss_HP).ExecuteCommand();
 
+                    
                     F2.sectBossAward award = new F2.sectBossAward();
                     award.bossLevel = sects.boss_level;
                     award.playerId = sectMember.playerId;
-                    var dmglst = dbh.Db.Queryable<F2.sectBossDamage>()
-                        .Where(ii => ii.sectid == sectMember.sectId)
-                        .OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
+                    //所有攻击过的人
+                    //var dmglst = dbh.Db.Queryable<F2.sectBossDamage>()
+                    //    .Where(ii => ii.sectid == sectMember.sectId)
+                    //    .OrderBy(ii => ii.damage, SqlSugar.OrderByType.Desc).Select(ii => ii.playerId).ToList();
+                    //两天内有登录的，都有奖励
+                    var timelimit = DateTime.Now.AddDays(-2);
+                    var dmglst = dbh.Db.Queryable<F2.sect_member>().Where(ii => ii.sectId == sectMember.sectId && ii.last_login_time >= timelimit).Select(ii => ii.playerId).ToList();
                     foreach (var item in dmglst)
                     {
                         award.playerId = item;
