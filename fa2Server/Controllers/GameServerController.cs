@@ -119,7 +119,7 @@ namespace fa2Server.Controllers
                         {
                             var tmpix = i - 3;
                             if (tmpix < 0) tmpix = 0;
-                            for (int j = tmpix; j < Math.Min(oyl.Count(),7); j++)
+                            for (int j = tmpix; j < Math.Min(oyl.Count(),7+i); j++)
                             {
                                 ml.Add(oyl[j]);
                             }
