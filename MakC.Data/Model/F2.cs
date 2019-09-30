@@ -348,6 +348,37 @@ namespace MakC.Data.Model
             public string content { get; set; }
             public bool isSect { get; set; }
         }
+        [SugarTable("xkts")]
+        public class xkts
+        {
+            public xkts()
+            {
+            }
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+            public int playerId { get; set; }
+            public int playerLevel { get; set; }
+            public string playerName { get; set; }
+            public string playerUuid { get; set; }
+            public int playerHYJF { get; set; }
+            public string FirstRoleID { get; set; }
+            public int tl { get; set; }
+            public string JJCRoles { get; set; }
+            public string zfDict { get; set; }
+
+            public string star_info { get; set; }
+            public DateTime start_recover { get; set; }
+            public DateTime last_explore { get; set; }
+            public int recover_time { get; set; }
+            public int current_explore { get; set; }
+            public int current_explore_id { get; set; }
+            public DateTime getRewardTime { get; set; }
+            public string zhen_rong { get; set; }
+            public string logs { get; set; }
+         
+            public bool isAndroid { get; set; }
+        }
     }
 
 }
