@@ -549,6 +549,7 @@ namespace fa2Server.Controllers
             account.firstPlayTime = player_data["playerDict"]["firstPlayTime"].ToString();
             account.lastLoginTime = DateTime.Now;
             account.player_data = player_data.ToString(Formatting.None);
+            account.userdata = "{}";
             if (dbh.Db.Updateable(account).ExecuteCommand() == 0)
             {
                 ResObj["message"] = "稍后重试！";
@@ -630,6 +631,13 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["code"] = 0;
+                ResObj["type"] = 2;
+                return ResObj;
+            }
+
             account.player_data = value["player_data"].ToString();
             account.player_zhong_yao = value["player_zhong_yao"].ToString();
             //account.userdata = value["userdata"].ToString();
@@ -883,6 +891,11 @@ namespace fa2Server.Controllers
 
             var dbh = DbContext.Get();
             F2.user account = getUserFromCache();
+            if (account.userdata!="{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗商会令！\n请注销后重新登录";
+                return ResObj;
+            }
 
             F2.shop shopItem = dbh.GetEntityDB<F2.shop>().GetById(id);
             if (shopItem == null)
@@ -1093,18 +1106,18 @@ namespace fa2Server.Controllers
                                 ResObj["message"] = $"成功炼制{sscnt}次。兑换码:1";
                                 break;
                             }
-                        case "中秋特别宝箱":
+                        case "国庆特别宝箱":
                             {
                                 var r = new Random();
                                 var r1 = r.Next(0, 10000);
-                                if (r1 < 1000)
+                                if (r1 < 700)
                                 {
                                     var l = 100;
                                     ResObj["message"] = $"恭喜你抽中了。\n\n商会令:" + l;
                                     dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.shl == (ii.shl + l)).Where(ii => ii.id == account.id).ExecuteCommand();
                                     break;
                                 }
-                                if (r1 < 2000)
+                                if (r1 < 1500)
                                 {
                                     //50分支一中随机令，最高1000令
                                     var l = r.Next(1, 11) * 100;
@@ -1112,7 +1125,7 @@ namespace fa2Server.Controllers
                                     dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.shl == (ii.shl + l)).Where(ii => ii.id == account.id).ExecuteCommand();
                                     break;
                                 }
-                                if (r1 < 4000)
+                                if (r1 < 3000)
                                 {
                                     //3分之一  100-200w宗门币
                                     int l = new Random().Next(2000000, 20000001);
@@ -1137,7 +1150,7 @@ namespace fa2Server.Controllers
                                     if (account.cz > 1000 && r1 >= 9990)
                                     {
                                         //1‰,真神器
-                                        account.cheatMsg += ",中秋抽奖真超神器+1";
+                                        account.cheatMsg += ",国庆抽奖真超神器+1";
                                         account.cjcs += 1;
                                         ResObj["message"] = $"恭喜你抽中了。\n\n真·神器！快去兑换！";
                                         item = 超神器真[r.Next(0, 超神器真.Count)];
@@ -1145,7 +1158,7 @@ namespace fa2Server.Controllers
                                     else if((account.cjcs == 0 || account.cz > 600) && r1 >9900)
                                     {
                                         //百分之一
-                                        account.cheatMsg += ",中秋抽奖超神器+1";
+                                        account.cheatMsg += ",国庆抽奖超神器+1";
                                         account.cjcs += 1;
                                         ResObj["message"] = $"恭喜你抽中了。\n\n超神器！快去兑换！";
                                         item = 超神器假[r.Next(0, 超神器假.Count)];
@@ -1153,7 +1166,7 @@ namespace fa2Server.Controllers
                                     else
                                     {
                                         //普通神器
-                                        account.cheatMsg += ",中秋抽奖神器+1";
+                                        account.cheatMsg += ",国庆抽奖神器+1";
                                         account.cjs += 1;
                                         ResObj["message"] = $"恭喜你抽中了。\n\n神器！快去兑换！";
                                         item = 神器[r.Next(0, 神器.Count)];
@@ -1187,11 +1200,14 @@ namespace fa2Server.Controllers
                                     }
                                     else if (r2 == 5)
                                     {
-                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 1000), new JProperty("num", 1000)));
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 333), new JProperty("num", 333)));
                                     }
                                     else if (r2 == 6)
                                     {
-                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 400), new JProperty("num", 400)));
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 200), new JProperty("num", 200)));
+                                    } else if (r2 == 7&&!account.isAndroid)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "112"), new JProperty("itemType", "8"), new JProperty("itemNum", 50), new JProperty("num", 50)));
                                     }
                                     else
                                     {
@@ -2487,6 +2503,11 @@ namespace fa2Server.Controllers
             ResObj["type"] = 1;
             int num = value["num"].AsInt();
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗宗门币！\n请注销后重新登录";
+                return ResObj;
+            }
             F2.sect_member sectMember = updateSectInfo(account);
             if (sectMember.sect_coin< num)
             {
@@ -2531,6 +2552,11 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;            
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗宗门币！\n请注销后重新登录";
+                return ResObj;
+            }
             F2.sect_member sectMember = updateSectInfo(account);
             if (sectMember.sect_coin < 抽奖费用*10)
             {
@@ -2580,6 +2606,11 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;            
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗宗门币！\n请注销后重新登录";
+                return ResObj;
+            }
             F2.sect_member sectMember = updateSectInfo(account);
             if (sectMember.sect_coin < 抽奖费用*100)
             {
@@ -2640,6 +2671,11 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗宗门币！\n请注销后重新登录";
+                return ResObj;
+            }
             F2.sect_member sectMember = updateSectInfo(account);
             if (sectMember.smelt_count < 3000)
             {
@@ -2879,6 +2915,11 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗宗门币！\n请注销后重新登录";
+                return ResObj;
+            }
             F2.sect_member sectMember = updateSectInfo(account);
             if (sectMember.sect_coin < 抽奖费用 * 10)
             {
@@ -2930,6 +2971,11 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗宗门币！\n请注销后重新登录";
+                return ResObj;
+            }
             F2.sect_member sectMember = updateSectInfo(account);
             if (sectMember.sect_coin < 抽奖费用 * 100)
             {
@@ -2978,6 +3024,11 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 1;
             F2.user account = getUserFromCache();
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗宗门币！\n请注销后重新登录";
+                return ResObj;
+            }
             F2.sect_member sectMember = updateSectInfo(account);
             if (sectMember.smelt_count < 3000)
             {
@@ -4449,6 +4500,12 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "未开启星空探索";
                 return ResObj;
             }
+            if (xkts.tl < 1)
+            {
+                ResObj["message"] = "体力不足";
+                return ResObj;
+            }
+
             if (xkts.current_explore > 0)
             {
                 //星球
@@ -4456,7 +4513,10 @@ namespace fa2Server.Controllers
                 {
                     xkts.tl--;
                     dbh.Db.Updateable(xkts).UpdateColumns("tl").ExecuteCommand();
-                    return xkts_bug_tl(value);
+                    ResObj["code"] = 0;
+                    ResObj["type"] = 110;
+                    ResObj["message"] = "success";
+                    return ResObj;
                 }
                 else
                 {
@@ -4700,7 +4760,16 @@ namespace fa2Server.Controllers
             ResObj["code"] = 1;
             ResObj["type"] = 110;
             F2.user account = getUserFromCache();
-
+            if (account.shl < 100)
+            {
+                ResObj["message"] = "商会令不足100";
+                return ResObj;
+            }
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗商会令！\n请注销后重新登录";
+                return ResObj;
+            }
             var dbh = DbContext.Get();
             F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
             if (xkts == null)
@@ -4708,15 +4777,12 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "未开启星空探索";
                 return ResObj;
             }
-            ResObj["message"] = "暂不支持购买";
-            return ResObj;
-
-
             var ztl = getXktsZdtl(account.cz);
+            dbh.Db.Updateable<F2.xkts>(xkts).SetColumns(ii => ii.tl == ztl).ExecuteCommand();
             ResObj["data"] = new JObject(
                 new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
               new JProperty("max_tl", ztl),
-              new JProperty("tl", xkts.tl),
+              new JProperty("tl", ztl),
               new JProperty("czjf", 0),
               new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
               new JProperty("current_explore", xkts.current_explore),
