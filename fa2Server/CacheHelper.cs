@@ -109,7 +109,20 @@ namespace fa2Server
             }
             return tmpData;
         }
+        private static Dictionary<int, int> skillPrice = new Dictionary<int, int>() {
+            { 320,300 },
+            { 323,500 },
+            { 324,500 },
+            { 325,500 },
+            { 326,500 },
+            { 327,500 },
+            { 282,500 },
+            { 317,500 },
+            { 276,500 },
+            { 285,500 },
+            { 334,500 },
 
+        };
         public static JObject GetExchangeData(bool isAndroid)
         {
             var tmpisa = (isAndroid ? 2 : 1);
@@ -146,6 +159,40 @@ namespace fa2Server
                                     new JProperty("num", item.t_count)
                                     ))
                              ));
+                        }
+                        if (w == "w6")
+                        {
+                            //周六随机30个技能
+                            Dictionary<int,int> randSkills = new Dictionary<int, int>();
+                            var r = new Random();
+                            while (randSkills.Count <= 30)
+                            {
+                                int ui = r.Next(1, 357);
+                                if (!randSkills.ContainsKey(ui))
+                                {
+                                    int price = skillPrice.GetValueOrDefault(ui, 100);
+                                    randSkills.Add(ui,price);
+                                }
+                            }
+                            foreach (var item in randSkills)
+                            {
+                                DHARR.Add(new JObject(
+                                new JProperty("USE", new JObject(
+                                    new JProperty("itemType", "8"),
+                                    new JProperty("childType", "96"),
+                                    new JProperty("num", item.Value)
+                                    )),
+                                new JProperty("GET", new JObject(
+                                    new JProperty("itemType", "9"),
+                                    new JProperty("childType", item.Key),
+                                    new JProperty("num", 1)
+                                    ))
+                             ));
+
+                            }
+
+
+
                         }
                         tmpData = new JObject(new JProperty("TEXT", "兑换活动"), new JProperty("DHARR", DHARR));
                         MemoryCacheService.Default.SetCache(key, tmpData, 24*60);

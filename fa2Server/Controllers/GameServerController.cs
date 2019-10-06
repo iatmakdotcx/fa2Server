@@ -1147,7 +1147,7 @@ namespace fa2Server.Controllers
                                 {
                                     //五分之一 中装备
                                     string item;
-                                    if (account.cz > 1000 && r1 >= 9990)
+                                    if (account.cz > 100 && r1 >= 9980)
                                     {
                                         //1‰,真神器
                                         account.cheatMsg += ",国庆抽奖真超神器+1";
@@ -1155,7 +1155,7 @@ namespace fa2Server.Controllers
                                         ResObj["message"] = $"恭喜你抽中了。\n\n真·神器！快去兑换！";
                                         item = 超神器真[r.Next(0, 超神器真.Count)];
                                     }
-                                    else if((account.cjcs == 0 || account.cz > 600) && r1 >9900)
+                                    else if(r1 >9800)
                                     {
                                         //百分之一
                                         account.cheatMsg += ",国庆抽奖超神器+1";
@@ -1208,6 +1208,12 @@ namespace fa2Server.Controllers
                                     } else if (r2 == 7&&!account.isAndroid)
                                     {
                                         reward_item_info.Add(new JObject(new JProperty("childType", "112"), new JProperty("itemType", "8"), new JProperty("itemNum", 50), new JProperty("num", 50)));
+                                    } else if (r2 == 8&&!account.isAndroid)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "112"), new JProperty("itemType", "8"), new JProperty("itemNum", 100), new JProperty("num", 100)));
+                                    } else if (r2 == 9&&!account.isAndroid)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "112"), new JProperty("itemType", "8"), new JProperty("itemNum", 150), new JProperty("num", 150)));
                                     }
                                     else
                                     {
@@ -2820,13 +2826,13 @@ namespace fa2Server.Controllers
                     item = 神器[r.Next(0, 神器.Count)];
                     account.cjs += 1;                    
                 }
-                else if ((account.cjcs == 0 || account.cz > 600) && luckNum == r.Next(0, 100000)) //没有充值的可以抽中一个神器
+                else if (luckNum == r.Next(0, 100000)) //没有充值的可以抽中一个神器
                 {
                     //十万分之一，超神器假
                     item = 超神器假[r.Next(0, 超神器假.Count)];
                     account.cjcs += 1;                    
                 }
-                else if (account.cz > 1000 && luckNum == r.Next(0, 1000000))  //充值小于 1000 的不能抽真神器
+                else if (account.cz > 100 && luckNum == r.Next(0, 1000000))  //充值小于 1000 的不能抽真神器
                 {
                     //百万分之一，超神器真
                     item = 超神器真[r.Next(0, 超神器真.Count)];
@@ -2877,13 +2883,13 @@ namespace fa2Server.Controllers
                     item = 神器[r.Next(0, 神器.Count)];
                     account.cjs += 1;
                 }
-                else if ((account.cjcs == 0 || account.cz > 600) && luckNum == r.Next(0, 100000))
+                else if (luckNum == r.Next(0, 100000))
                 {
                     //十万分之一，超神器假
                     item = 超神器假[r.Next(0, 超神器假.Count)];
                     account.cjcs += 1;
                 }
-                else if (account.cz > 1000 && luckNum == r.Next(0, 1000000))
+                else if (account.cz > 100 && luckNum == r.Next(0, 1000000))
                 {
                     //百万分之一，超神器真
                     item = 超神器真[r.Next(0, 超神器真.Count)];
@@ -4778,6 +4784,7 @@ namespace fa2Server.Controllers
                 return ResObj;
             }
             var ztl = getXktsZdtl(account.cz);
+            dbh.Db.Updateable(account).SetColumns(ii => ii.shl == ii.shl-100).ExecuteCommand();
             dbh.Db.Updateable<F2.xkts>(xkts).SetColumns(ii => ii.tl == ztl).ExecuteCommand();
             ResObj["data"] = new JObject(
                 new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
