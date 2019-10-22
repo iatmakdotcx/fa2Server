@@ -4416,7 +4416,7 @@ namespace fa2Server.Controllers
 
             return zhen_rong;
         }
-        [HttpPost("api/v3/xkts/get_info")]
+        [HttpPost("api/v4/xkts/get_info")]
         public JObject xkts_get_info([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4473,23 +4473,23 @@ namespace fa2Server.Controllers
             }
 
             ResObj["data"] = new JObject(
-                new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong??"{}")),
+                new JProperty("h", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong??"{}")),
 
 
-                new JProperty("max_tl", ztl),
-                new JProperty("tl", xkts.tl),
+                new JProperty("d", ztl),
+                new JProperty("a", xkts.tl),
                 new JProperty("czjf", 0),
                 new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
-                new JProperty("current_explore", xkts.current_explore),
-                new JProperty("star_info", decodeStarInfo(xkts.star_info)),
-                new JProperty("recover_time", xkts.recover_time)
+                new JProperty("b", xkts.current_explore),
+                new JProperty("f", decodeStarInfo(xkts.star_info)),
+                new JProperty("e", xkts.recover_time)
 
                 );
             ResObj["code"] = 0;
             ResObj["type"] = 102;
             return ResObj;
         }
-        [HttpPost("api/v3/xkts/explore_xq")]
+        [HttpPost("api/v4/xkts/explore_xq")]
         public JObject xkts_explore_xq([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4548,22 +4548,22 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable(xkts).UpdateColumns("tl", "current_explore", "current_explore_id", "star_info", "zhen_rong").ExecuteCommand();
             var ztl = getXktsZdtl(account.cz);
             ResObj["data"] = new JObject(
-                new JProperty("zhen_rong", xkts_zhen_rong),
+                new JProperty("h", xkts_zhen_rong),
                 new JProperty("reward", rewardData),   //none,getSj,getSMBY
-                new JProperty("current_explore", xkts.current_explore),
-                new JProperty("max_tl", ztl),
-                new JProperty("tl", xkts.tl),
+                new JProperty("b", xkts.current_explore),
+                new JProperty("d", ztl),
+                new JProperty("a", xkts.tl),
                 new JProperty("start_recover", xkts.start_recover.AsTimestamp()),
                 new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
-                new JProperty("recover_time", xkts.recover_time),
+                new JProperty("e", xkts.recover_time),
                 new JProperty("last_explore_event", 0),
-                new JProperty("star_info", decodeStarInfo(xkts.star_info))
+                new JProperty("f", decodeStarInfo(xkts.star_info))
             );
             ResObj["code"] = 0;
             ResObj["type"] = 103;
             return ResObj;
         }
-        [HttpPost("api/v3/xkts/get_zhenrong")]
+        [HttpPost("api/v4/xkts/get_zhenrong")]
         public JObject xkts_get_zhenrong([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4591,7 +4591,7 @@ namespace fa2Server.Controllers
             ResObj["message"] = "success";
             return ResObj;
         }
-        [HttpPost("api/v3/xkts/save_zhenrong")]
+        [HttpPost("api/v4/xkts/save_zhenrong")]
         public JObject xkts_save_zhenrong([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4616,7 +4616,7 @@ namespace fa2Server.Controllers
             ResObj["message"] = "success";
             return ResObj;
         }
-        [HttpPost("api/v3/xkts/get_reward")]
+        [HttpPost("api/v4/xkts/get_reward")]
         public JObject xkts_get_reward([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4675,7 +4675,7 @@ namespace fa2Server.Controllers
             ResObj["message"] = "success";
             return ResObj;
         }
-        [HttpPost("api/v3/xkts/leave")]
+        [HttpPost("api/v4/xkts/leave")]
         public JObject xkts_leave([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4703,21 +4703,21 @@ namespace fa2Server.Controllers
             var ztl = getXktsZdtl(account.cz);
             //{"code":1,"type":106,"message":"体力不足"}
             ResObj["data"] = new JObject(
-                new JProperty("zhen_rong", xkts_zhen_rong),
-              new JProperty("max_tl", ztl),
-              new JProperty("tl", xkts.tl),
+                new JProperty("h", xkts_zhen_rong),
+              new JProperty("d", ztl),
+              new JProperty("a", xkts.tl),
               new JProperty("czjf", 0),
               new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
-              new JProperty("current_explore", xkts.current_explore),
-              new JProperty("star_info", decodeStarInfo(xkts.star_info)),
-              new JProperty("recover_time", xkts.recover_time)
+              new JProperty("b", xkts.current_explore),
+              new JProperty("f", decodeStarInfo(xkts.star_info)),
+              new JProperty("e", xkts.recover_time)
               );
             ResObj["code"] = 0;
             ResObj["type"] = 106;
             ResObj["message"] = "success";
             return ResObj;
         }
-        [HttpPost("api/v3/xkts/xkts_logs")]
+        [HttpPost("api/v4/xkts/xkts_logs")]
         public JObject xkts_xkts_logs([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4758,7 +4758,7 @@ namespace fa2Server.Controllers
             ResObj["message"] = "success";
             return ResObj;
         }
-        [HttpPost("api/v3/xkts/bug_tl")]
+        [HttpPost("api/v4/xkts/bug_tl")]
         public JObject xkts_bug_tl([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4786,14 +4786,14 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable(account).SetColumns(ii => ii.shl == ii.shl-100).ExecuteCommand();
             dbh.Db.Updateable<F2.xkts>(xkts).SetColumns(ii => ii.tl == ztl).ExecuteCommand();
             ResObj["data"] = new JObject(
-                new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
-              new JProperty("max_tl", ztl),
-              new JProperty("tl", ztl),
+                new JProperty("h", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
+              new JProperty("d", ztl),
+              new JProperty("a", ztl),
               new JProperty("czjf", 0),
               new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
-              new JProperty("current_explore", xkts.current_explore),
-              new JProperty("star_info", decodeStarInfo(xkts.star_info)),
-              new JProperty("recover_time", xkts.recover_time)
+              new JProperty("b", xkts.current_explore),
+              new JProperty("f", decodeStarInfo(xkts.star_info)),
+              new JProperty("e", xkts.recover_time)
               );
 
             ResObj["code"] = 0;
@@ -4802,7 +4802,7 @@ namespace fa2Server.Controllers
             return ResObj;
         }
 
-        [HttpPost("api/v3/xkts/give_up_star")]
+        [HttpPost("api/v4/xkts/give_up_star")]
         public JObject xkts_give_up_star([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4832,14 +4832,14 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable(xkts).UpdateColumns("star_info").ExecuteCommand();
             var ztl = getXktsZdtl(account.cz);
             ResObj["data"] = new JObject(
-                new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
-              new JProperty("max_tl", ztl),
-              new JProperty("tl", xkts.tl),
+                new JProperty("h", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
+              new JProperty("d", ztl),
+              new JProperty("a", xkts.tl),
               new JProperty("czjf", 0),
               new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
-              new JProperty("current_explore", xkts.current_explore),
-              new JProperty("star_info", decodeStarInfo(xkts.star_info)),
-              new JProperty("recover_time", xkts.recover_time)
+              new JProperty("b", xkts.current_explore),
+              new JProperty("f", decodeStarInfo(xkts.star_info)),
+              new JProperty("e", xkts.recover_time)
               );
 
             ResObj["code"] = 0;
@@ -4848,7 +4848,7 @@ namespace fa2Server.Controllers
             return ResObj;
         }
 
-        [HttpPost("api/v3/xkts/success")]
+        [HttpPost("api/v4/xkts/success")]
         public JObject xkts_success([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -4893,16 +4893,16 @@ namespace fa2Server.Controllers
             dbh.Db.Updateable(xkts).UpdateColumns("current_explore", "current_explore_id", "star_info", "zhen_rong").ExecuteCommand();
             var ztl = getXktsZdtl(account.cz);
             ResObj["data"] = new JObject(
-                new JProperty("zhen_rong", xkts_zhen_rong),
+                new JProperty("h", xkts_zhen_rong),
                 new JProperty("reward", "getSMBY"),   //none,getSj,getSMBY
-                new JProperty("current_explore", xkts.current_explore),
-                new JProperty("max_tl", ztl),
-                new JProperty("tl", xkts.tl),
+                new JProperty("b", xkts.current_explore),
+                new JProperty("d", ztl),
+                new JProperty("a", xkts.tl),
                 new JProperty("start_recover", xkts.start_recover.AsTimestamp()),
                 new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
-                new JProperty("recover_time", xkts.recover_time),
+                new JProperty("e", xkts.recover_time),
                 new JProperty("last_explore_event", 0),
-                new JProperty("star_info", decodeStarInfo(xkts.star_info))
+                new JProperty("f", decodeStarInfo(xkts.star_info))
             );
 
             ResObj["code"] = 0;

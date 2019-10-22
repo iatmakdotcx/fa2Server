@@ -426,6 +426,128 @@ namespace fa2Server
             return MD5Hash(k1 + data.Trim() + k2 + "U8VrXwFkELpEhiMSByrdftZQbnCUP8Vw" + uuid);
         }
 
+
+       
+        public static string AESEncrypt_475(string Data, string uuid, string token, long ServerTime)
+        {
+            string key;
+            string iv;
+            string randStr = "UiPL68O700HViOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7C77ANY6w4n0bTV9dageVA1SD5Anhw2t6ULfyvNY";
+            ios475_getAESKey(uuid, token, ServerTime, randStr, out key, out iv);
+            //使用AES（CBC）加密
+            Byte[] Cryptograph = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream())
+                {
+                    using (CryptoStream Encryptor = new CryptoStream(Memory,
+                    Aes.CreateEncryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Write))
+                    {
+                        Byte[] plainBytes = Encoding.UTF8.GetBytes(Data);
+                        Encryptor.Write(plainBytes, 0, plainBytes.Length);
+                        Encryptor.FlushFinalBlock();
+                        Cryptograph = Memory.ToArray();
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            string resultStr = Convert.ToBase64String(Cryptograph);
+            for (int i = 0; i < 128/4; i++)
+            {
+                string subStr = randStr.Substring(i * 4, 4);
+                resultStr = resultStr.Insert(6 + i * 6 + i * 4, subStr);
+            }
+            return resultStr;
+        }
+
+        public static string AESDecrypt_475(string Data, string uuid, string token, long ServerTime)
+        {
+            string key;
+            string iv;
+            string randStr = "";
+            for (int i = 0; i < 128 / 4; i++)
+            {
+                randStr += Data.Substring(6 + i * 6, 4);
+                Data = Data.Remove(6 + i * 6, 4);
+            }
+            ios475_getAESKey(uuid, token, ServerTime, randStr, out key, out iv);
+
+            //使用AES（CBC）解密
+            Byte[] original = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream(Convert.FromBase64String(Data)))
+                {
+                    using (CryptoStream Decryptor = new CryptoStream(Memory,
+                    Aes.CreateDecryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Read))
+                    {
+                        using (MemoryStream originalMemory = new MemoryStream())
+                        {
+                            Byte[] Buffer = new Byte[1024];
+                            Int32 readBytes = 0;
+                            while ((readBytes = Decryptor.Read(Buffer, 0, Buffer.Length)) > 0)
+                            {
+                                originalMemory.Write(Buffer, 0, readBytes);
+                            }
+                            original = originalMemory.ToArray();
+                        }
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
+            return Encoding.UTF8.GetString(original);
+        }
+        public static void ios475_getAESKey(string uuid, string token, long ServerTime, string randStr, out string key, out string iv)
+        {
+            string key1 = MD5Hash(uuid + (ServerTime / 29).ToString() + randStr.Substring(0, 0x20));
+            string key2 = MD5Hash(((ServerTime % 29) + ServerTime).ToString() + randStr.Substring(0x20, 0x20));
+            string key3 = MD5Hash((ServerTime % 29).ToString() + MD5Hash(token).Substring(4, 16) + randStr.Substring(0x40, 0x20));
+            string key4 = MD5Hash(key1 + key2 + key3 + randStr.Substring(0x60, 0x20));
+
+            string v20 = key1 + key1;
+            string v21 = key2 + key2;
+            string v22 = key3 + key3;
+            string v23 = key4 + key4;
+
+            int v25 = (int)(ServerTime % 29);
+            if ((ServerTime & 1) > 0)
+            {
+                key = v20.Substring(v25, 3) + 
+                      v22.Substring(v25 + 3, 11) + 
+                      v21.Substring(v25 + 14, 7) + 
+                      v23.Substring(v25 + 21, 11);
+            }
+            else
+            {
+                key = v21.Substring(v25, 5) +
+                      v23.Substring(v25 + 5, 7) +
+                      v20.Substring(v25 + 12, 12) +
+                      v22.Substring(v25 + 24, 8);
+            }
+            string v36 = "IDbOjeDXWJHiJDYClEkArSWWZCHMtxcTnxBfNnoyyPxkdAClolEIRlWSkAIyqSfuwFBWrjZcFYWGUHneMszYaZCzBHhkDamPMKUzkytuiJImLpWeSXWuNcPoliCQsKpB".Substring((int)(ServerTime % 120), 8);
+            string v37 = v23.Substring((int)(ServerTime % 24), 8);
+            if ((ServerTime & 1) > 0)
+            {
+                iv = v36 + v37;
+            }
+            else
+            {
+                iv = v37 + v36;
+            }
+        }
+
+
+
         public static string AESDecrypt(string Data, string uuid, string token, long ServerTime)
         {
             string key;

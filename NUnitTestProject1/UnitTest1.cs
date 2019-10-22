@@ -47,5 +47,24 @@ namespace Tests
             Assert.AreEqual(data, Encryptdata);
             Assert.Pass();
         }
+
+        [Test]
+        public void Test475()
+        {
+            string data = "{\"net_id\":\"933\",\"userDefR\":\"79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8\",\"sg_version\":\"475\",\"userHpR\":\"yCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7C77A\",\"uuid\":\"34178f82-565a-442e-ae22-39b08c7d858d\",\"userAtkR\":\"iOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7\",\"token\":\"6b371671-938b-46fd-96f7-3bc3f3195a23\"}";
+            string decryptdata = dataHashFilter.AESEncrypt_475(data, "34178f82-565a-442e-ae22-39b08c7d858d", "6b371671-938b-46fd-96f7-3bc3f3195a23", 1571764163);
+            string Encryptdata = dataHashFilter.AESDecrypt_475(decryptdata, "34178f82-565a-442e-ae22-39b08c7d858d", "6b371671-938b-46fd-96f7-3bc3f3195a23", 1571764163);
+            //Assert.AreEqual(data, Encryptdata);
+            Assert.Pass();
+        }
+        [Test]
+        public void Test475_decrypt()
+        {
+            string data = "RYylfoBzZx0pwqO7814FDrhSAM4B6rPrasqjxV78Rl9lfm3GMPYN1VWYL9Wq9aQhi5t2wEWP5PNnS674m3dht13Wh7xbhdQ92xGXWkWjaIr18S7hVqpB97Y5Ip+WpqWV023G8lfQZVFN55HoCf1t33Lp+Ku+x7VqiLTkUw4WF14jkdVor27tv0inpKUHqskLsezw2R888X9d0BwR78rKMPzuBB3a/HHmsOFN81tJSGAJ6U19zSVk7sheM25MuJk4ANacpjIsyt3qJymr680JBHSzK2DzfKbrijX/lo9Jfl0zazVmLIbAQ2Fe5JzBCtK9Ci6/r6l1mnrK8EnIMg4OkXgyBRFo6cyXCujPWdv3y3VX0G0QFeJmtZK7YZXHSI6u/oPJiRfbLawNtjs4pgKoQ3OEezIz7rKUVvI6tMRElEBRXq/xmJCW1aocUREOh8u/uAxa2+qSXtJIyoLhA6GxectcIkWDaA6o8R/qQ56C/84ZeFpAdWAroVwr3zWe7sbEsslvhPim6dySC6PhBazQjwD+ez9qCTSWUlnBEga1P0F53UrhRzeA3+xgFHuvRO810mELKEuKMvhkiUVdiZ+uAneUngPNgzCoQfJx8IjhflTANzkNXIeyALRzktqxrM9VMCpdgDBWoSzlqkJrd1Bjn8DrUwbz9sjh1Kb9+xokVEo=";
+            string decryptdata = dataHashFilter.AESDecrypt_475(data, "34178f82-565a-442e-ae22-39b08c7d858d", "6b371671-938b-46fd-96f7-3bc3f3195a23", 1571754174);
+            //string Encryptdata = dataHashFilter.AESEncrypt_475(decryptdata, "", "",1567235435);
+            //Assert.AreEqual(data, Encryptdata);
+            Assert.Pass();
+        }
     }
 }
