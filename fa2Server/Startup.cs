@@ -92,7 +92,7 @@ namespace fa2Server
                 GameServerController.NewDay();
 
                 var cud = DateTime.Now;
-                if (cud.DayOfWeek == DayOfWeek.Sunday || cud.DayOfWeek == DayOfWeek.Thursday)
+                if (cud.DayOfWeek == DayOfWeek.Monday || cud.DayOfWeek == DayOfWeek.Thursday)
                 {
                     //星期1，4报名
                     GameServerController.ctl_mj_0(1);

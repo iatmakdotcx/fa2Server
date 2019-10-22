@@ -372,7 +372,7 @@ namespace fa2Server.Controllers
                 .UpdateColumns(ii => new { ii.mrbpslt, ii.mrbpzmb})
                 .Where(ii => ii.id > 0).ExecuteCommand();
             //48小时内未登录的踢出宗门
-            var timelimit = DateTime.Now.AddDays(-2);
+            var timelimit = DateTime.Now.AddDays(-5);
             dbh.Db.Updateable<F2.sect_member>()
                 .SetColumns(ii => ii.sectId == 0)
                 .Where(ii => ii.last_login_time < timelimit).ExecuteCommand();
@@ -1167,8 +1167,7 @@ namespace fa2Server.Controllers
                                     {
                                         //普通神器
                                         account.cheatMsg += ",国庆抽奖神器+1";
-                                        account.cjs += 1;
-                                        ResObj["message"] = $"恭喜你抽中了。\n\n神器！快去兑换！";
+                                        account.cjs += 1;                                        
                                         item = 神器[r.Next(0, 神器.Count)];
                                     }
                                     var iarr = item.Split(",");

@@ -121,7 +121,10 @@ namespace fa2Server
             { 276,500 },
             { 285,500 },
             { 334,500 },
-
+        };
+        private static List<int> resvSkill = new List<int>()
+        {
+            291,346,294
         };
         public static JObject GetExchangeData(bool isAndroid)
         {
@@ -168,7 +171,7 @@ namespace fa2Server
                             while (randSkills.Count <= 30)
                             {
                                 int ui = r.Next(1, 357);
-                                if (!randSkills.ContainsKey(ui))
+                                if (!randSkills.ContainsKey(ui) && !resvSkill.Contains(ui))
                                 {
                                     int price = skillPrice.GetValueOrDefault(ui, 100);
                                     randSkills.Add(ui,price);
