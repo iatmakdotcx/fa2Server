@@ -4359,7 +4359,7 @@ namespace fa2Server.Controllers
         {
             JObject zhen_rong = new JObject();
             var r = new Random();
-            int starid = r.Next(0, 500);
+            int starid = r.Next(0, 380);
             if (starid < 180)
             {
                 string ttstr = "," + starid.ToString() + ",";
@@ -4408,17 +4408,25 @@ namespace fa2Server.Controllers
                 xkts.current_explore = 4;
                 xkts.current_explore_id = starid;
             }
-            else if (starid < 450)
+            else if (starid < 300)
             {
                 //树人
                 xkts.current_explore = 5;
                 xkts.current_explore_id = 0;
 
+//#if DEBUG 
+//                xkts.srDict = new JObject(
+//                        new JProperty("enemy0", 1),
+//                        new JProperty("enemy1", 1),
+//                        new JProperty("enemy2", 1)
+//                        ).ToString(Formatting.None);
+//#else
                 xkts.srDict = new JObject(
                         new JProperty("enemy0", r.Next(1200, 1206)),
                         new JProperty("enemy1", r.Next(1200, 1206)),
                         new JProperty("enemy2", r.Next(1200, 1206))
                         ).ToString(Formatting.None);
+//#endif
             }
             else
             {
@@ -4524,8 +4532,17 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "体力不足";
                 return ResObj;
             }
-
-            if (xkts.current_explore > 0)
+            if (xkts.current_explore == 5)
+            {
+                //挑战树人
+                xkts.tl--;
+                dbh.Db.Updateable(xkts).UpdateColumns("tl").ExecuteCommand();
+                ResObj["code"] = 0;
+                ResObj["type"] = 110;
+                ResObj["message"] = "success";
+                return ResObj;
+            }
+            else if (xkts.current_explore > 0)
             {
                 //星球
                 if (!string.IsNullOrEmpty(xkts.zhen_rong) && xkts.zhen_rong.Length > 10)
@@ -4559,7 +4576,7 @@ namespace fa2Server.Controllers
             xkts.tl--;
             var xkts_zhen_rong = getNewSearch(dbh, account, ref xkts);
             xkts.zhen_rong = xkts_zhen_rong.ToString(Formatting.None);
-            dbh.Db.Updateable(xkts).UpdateColumns("tl", "current_explore", "current_explore_id", "star_info", "zhen_rong").ExecuteCommand();
+            dbh.Db.Updateable(xkts).UpdateColumns("tl", "current_explore", "current_explore_id", "star_info", "zhen_rong", "srDict").ExecuteCommand();
             var ztl = getXktsZdtl(account.cz);
             ResObj["data"] = new JObject(
                 new JProperty("h", xkts_zhen_rong),
@@ -4714,7 +4731,7 @@ namespace fa2Server.Controllers
             xkts.tl--;
             var xkts_zhen_rong = getNewSearch(dbh, account, ref xkts);
             xkts.zhen_rong = xkts_zhen_rong.ToString(Formatting.None);
-            dbh.Db.Updateable(xkts).UpdateColumns("tl", "current_explore", "current_explore_id", "zhen_rong").ExecuteCommand();
+            dbh.Db.Updateable(xkts).UpdateColumns("tl", "current_explore", "current_explore_id", "zhen_rong", "srDict").ExecuteCommand();
             var ztl = getXktsZdtl(account.cz);
             //{"code":1,"type":106,"message":"体力不足"}
             ResObj["data"] = new JObject(
@@ -4866,6 +4883,145 @@ namespace fa2Server.Controllers
             return ResObj;
         }
 
+        Random r = new Random();
+        private void getReward(ref JObject rewobj, JValue objvalue)
+        {
+            var enemyId = objvalue.AsInt();
+            switch (enemyId)
+            {
+                case 1200:
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 100;
+                    break;
+                case 1201:
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 1;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 100;
+                    break;
+                case 1202:
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 2;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 200;
+                    break;
+                case 1203:
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 3;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 300;
+                    break;
+                case 1204:
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 4;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 400;
+                    if (r.Next(1000) <= 100)
+                    {
+                        switch (r.Next(10))
+                        {
+                            case 0:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "10"),
+                                    new JProperty("childType", "92"),
+                                    new JProperty("num","1")
+                                )) ;
+                                break;
+                            case 1:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "10"),
+                                    new JProperty("childType", "93"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 2:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "10"),
+                                    new JProperty("childType", "94"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 3:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "10"),
+                                    new JProperty("childType", "95"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 4:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "10"),
+                                    new JProperty("childType", "96"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 5:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "338"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                case 1205:
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 5;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 500;
+                    if (r.Next(1000) <= 100)
+                    {
+                        switch (r.Next(10))
+                        {
+                            case 0:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "5"),
+                                    new JProperty("childType", "77"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 1:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "6"),
+                                    new JProperty("childType", "69"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 2:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "11"),
+                                    new JProperty("childType", "85"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 3:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "7"),
+                                    new JProperty("childType", "76"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 4:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "1"),
+                                    new JProperty("childType", "74"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 5:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "2"),
+                                    new JProperty("childType", "80"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            case 6:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "4"),
+                                    new JProperty("childType", "77"),
+                                    new JProperty("num", "1")
+                                ));
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+            }
+        }
         [HttpPost("api/v4/xkts/success")]
         public JObject xkts_success([FromBody] JObject value)
         {
@@ -4884,7 +5040,38 @@ namespace fa2Server.Controllers
             {
                 //挑战树人
 
+                var j = (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}");
+                JObject jitem = new JObject(
+                   new JProperty("getSMBY", 1),
+                   new JProperty("getSj", 1),
+                   new JProperty("items", new JArray())
+               );
+                if (j["enemy0"] != null) getReward(ref jitem, (JValue)j["enemy0"]);
+                if (j["enemy1"] != null) getReward(ref jitem, (JValue)j["enemy1"]);
+                if (j["enemy2"] != null) getReward(ref jitem, (JValue)j["enemy2"]);
 
+
+                xkts.current_explore = 0;
+                xkts.current_explore_id = 0;
+                dbh.Db.Updateable(xkts).UpdateColumns("current_explore", "current_explore_id").ExecuteCommand();
+
+                //jitem["h"] = xkts_zhen_rongxx;
+                //jitem["b"] = xkts.current_explore;
+                //jitem["d"] = getXktsZdtl(account.cz);
+                //jitem["a"] = xkts.tl;
+                //jitem["start_recover"] = xkts.start_recover.AsTimestamp();
+                //jitem["last_explore"] = xkts.last_explore.AsTimestamp();
+                //jitem["e"] = xkts.recover_time;
+                //jitem["g"] = 0;
+                //jitem["f"] = decodeStarInfo(xkts.star_info);
+                //jitem["j"] = (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}");
+
+
+                ResObj["data"] = jitem;
+                ResObj["code"] = 0;
+                ResObj["type"] = 107;
+                ResObj["message"] = "success";
+                return ResObj;
             }
             else
             {
@@ -4917,7 +5104,7 @@ namespace fa2Server.Controllers
             }
             var xkts_zhen_rong = getNewSearch(dbh, account, ref xkts);
             xkts.zhen_rong = xkts_zhen_rong.ToString(Formatting.None);
-            dbh.Db.Updateable(xkts).UpdateColumns("current_explore", "current_explore_id", "star_info", "zhen_rong").ExecuteCommand();
+            dbh.Db.Updateable(xkts).UpdateColumns("current_explore", "current_explore_id", "star_info", "zhen_rong", "srDict").ExecuteCommand();
             var ztl = getXktsZdtl(account.cz);
             ResObj["data"] = new JObject(
                 new JProperty("h", xkts_zhen_rong),
@@ -4929,7 +5116,8 @@ namespace fa2Server.Controllers
                 new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
                 new JProperty("e", xkts.recover_time),
                 new JProperty("g", 0),
-                new JProperty("f", decodeStarInfo(xkts.star_info))
+                new JProperty("f", decodeStarInfo(xkts.star_info)),
+                new JProperty("j", (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}"))
             );
 
             ResObj["code"] = 0;
@@ -4943,6 +5131,567 @@ namespace fa2Server.Controllers
         #endregion 星空探索
 
 
+
+        #region 星空探索3
+        private JObject getNewSearch3(DbContext dbh, F2.user account, ref F2.xkts xkts)
+        {
+            JObject zhen_rong = new JObject();
+            int starid = new Random().Next(0, 300);
+            if (starid < 180)
+            {
+                string ttstr = "," + starid.ToString() + ",";
+                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+                if (dd != null)
+                {
+                    if (dd.playerId == account.id)
+                    {
+                        //已被自己占领的星球
+                        starid = 9999;
+                    }
+                    else if (!string.IsNullOrEmpty(dd.JJCRoles) && dd.JJCRoles.Length > 10)
+                    {
+                        //被别人占领的(且有阵容
+                        zhen_rong = new JObject(
+                        new JProperty("uuid", dd.playerUuid),
+                        new JProperty("zfDict", dd.zfDict),
+                        new JProperty("JJCRoles", dd.JJCRoles),
+                        new JProperty("playerlv", dd.playerLevel),
+                        new JProperty("playerName", dd.playerName)
+                        );
+                    }
+                }
+            }
+            if (starid < 100)
+            {
+                //小
+                xkts.current_explore = 1;
+                xkts.current_explore_id = starid;
+            }
+            else if (starid < 150)
+            {
+                //中
+                xkts.current_explore = 2;
+                xkts.current_explore_id = starid;
+            }
+            else if (starid < 170)
+            {
+                //大
+                xkts.current_explore = 3;
+                xkts.current_explore_id = starid;
+            }
+            else if (starid < 180)
+            {
+                //巨星
+                xkts.current_explore = 4;
+                xkts.current_explore_id = starid;
+            }
+            else
+            {
+                //荒芜星球
+                xkts.current_explore = 0;
+                xkts.current_explore_id = 0;
+            }
+
+            return zhen_rong;
+        }
+        [HttpPost("api/v3/xkts/get_info")]
+        public JObject _3_xkts_get_info([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 102;
+            F2.user account = getUserFromCache();
+            //{"code":0,"type":102,"data":{"max_tl":20,"tl":1,"czjf":7005300,"last_explore":1569692945,"current_explore":0,"star_info":[120,125,161,176],"recover_time":8447}}
+            var dbh = DbContext.Get();
+            var ztl = getXktsZdtl(account.cz);
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                xkts = new F2.xkts();
+                xkts.playerId = account.id;
+                xkts.playerUuid = account.uuid;
+
+                var playerDict = ((JObject)JsonConvert.DeserializeObject(account.player_data))["playerDict"];
+                xkts.playerName = playerDict["playName"]?.ToString() ?? account.username;
+                xkts.playerLevel = GetExpLevel(playerDict["juntuanExp"].AsLong());
+                xkts.playerHYJF = GetVIPLevel(playerDict["hyJiFen"].AsInt());//会员等级
+                xkts.tl = ztl;
+                xkts.last_explore = DateTime.Now;
+                xkts.start_recover = DateTime.Now;
+                xkts.FirstRoleID = "60005";
+                xkts.zfDict = "{}";
+                xkts.JJCRoles = "{}";
+                xkts.zhen_rong = "{}";
+
+                dbh.Db.Insertable(xkts).ExecuteCommand();
+            }
+            else
+            {
+                var playerDict = ((JObject)JsonConvert.DeserializeObject(account.player_data))["playerDict"];
+                xkts.playerName = playerDict["playName"]?.ToString() ?? account.username;
+                xkts.playerLevel = GetExpLevel(playerDict["juntuanExp"].AsLong());
+                xkts.playerHYJF = GetVIPLevel(playerDict["hyJiFen"].AsInt());//会员等级
+
+                var ttt = DateTime.Now - xkts.start_recover;
+                int addtl = (int)(ttt.TotalHours / 3);
+                xkts.tl += addtl;
+                if (xkts.tl >= ztl)
+                {
+                    xkts.tl = ztl;
+                    xkts.recover_time = 0;
+                    xkts.start_recover = DateTime.Now;
+                }
+                else
+                {
+                    xkts.recover_time = 3 * 60 * 60 - ((int)ttt.TotalSeconds % (3 * 60 * 60));
+                    xkts.start_recover = xkts.start_recover.AddHours(addtl * 3);
+                }
+
+                dbh.Db.Updateable(xkts).ExecuteCommand();
+            }
+
+            ResObj["data"] = new JObject(
+                new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
+
+
+                new JProperty("max_tl", ztl),
+                new JProperty("tl", xkts.tl),
+                new JProperty("czjf", 0),
+                new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
+                new JProperty("current_explore", xkts.current_explore),
+                new JProperty("star_info", decodeStarInfo(xkts.star_info)),
+                new JProperty("recover_time", xkts.recover_time)
+
+                );
+            ResObj["code"] = 0;
+            ResObj["type"] = 102;
+            return ResObj;
+        }
+        [HttpPost("api/v3/xkts/explore_xq")]
+        public JObject _3_xkts_explore_xq([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 103;
+            F2.user account = getUserFromCache();
+            //{"code":0,"type":103,"data":{"zhen_rong":{},"reward":"getSj","current_explore":0,"max_tl":20,"tl":0,"start_recover":1569690592,"last_explore":1569692984,"recover_time":8408,"last_explore_event":0,"star_info":[120,125,161,176]}}
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            string rewardData = "none";
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            if (xkts.tl < 1)
+            {
+                ResObj["message"] = "体力不足";
+                return ResObj;
+            }
+
+            if (xkts.current_explore > 0)
+            {
+                //星球
+                if (!string.IsNullOrEmpty(xkts.zhen_rong) && xkts.zhen_rong.Length > 10)
+                {
+                    xkts.tl--;
+                    dbh.Db.Updateable(xkts).UpdateColumns("tl").ExecuteCommand();
+                    ResObj["code"] = 0;
+                    ResObj["type"] = 110;
+                    ResObj["message"] = "success";
+                    return ResObj;
+                }
+                else
+                {
+                    //(直接占领
+                    rewardData = "getSMBY";
+                    xkts.star_info += "," + xkts.current_explore_id + ",";
+                }
+            }
+            else
+            {
+                int xtype = new Random().Next(0, 5);
+                if (xtype == 0)
+                {
+                    rewardData = "getSj";
+                }
+                else if (xtype == 1)
+                {
+                    rewardData = "getSMBY";
+                }
+            }
+            xkts.tl--;
+            var xkts_zhen_rong = getNewSearch3(dbh, account, ref xkts);
+            xkts.zhen_rong = xkts_zhen_rong.ToString(Formatting.None);
+            dbh.Db.Updateable(xkts).UpdateColumns("tl", "current_explore", "current_explore_id", "star_info", "zhen_rong").ExecuteCommand();
+            var ztl = getXktsZdtl(account.cz);
+            ResObj["data"] = new JObject(
+                new JProperty("zhen_rong", xkts_zhen_rong),
+                new JProperty("reward", rewardData),   //none,getSj,getSMBY
+                new JProperty("current_explore", xkts.current_explore),
+                new JProperty("max_tl", ztl),
+                new JProperty("tl", xkts.tl),
+                new JProperty("start_recover", xkts.start_recover.AsTimestamp()),
+                new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
+                new JProperty("recover_time", xkts.recover_time),
+                new JProperty("last_explore_event", 0),
+                new JProperty("star_info", decodeStarInfo(xkts.star_info))
+            );
+            ResObj["code"] = 0;
+            ResObj["type"] = 103;
+            return ResObj;
+        }
+        [HttpPost("api/v3/xkts/get_zhenrong")]
+        public JObject _3_xkts_get_zhenrong([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 105;
+            F2.user account = getUserFromCache();
+            //{"code":0,"type":105,"data":{"uuid":"","zfDict":"{}","JJCRoles":"{}", "playerlv","1000", "playerName":"xxx"}}
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+
+            ResObj["data"] = new JObject(
+                new JProperty("uuid", account.uuid),
+                new JProperty("zfDict", xkts.zfDict),
+                new JProperty("JJCRoles", xkts.JJCRoles),
+                new JProperty("playerlv", xkts.playerLevel),
+                new JProperty("playerName", xkts.playerName)
+                );
+            ResObj["code"] = 0;
+            ResObj["type"] = 105;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+        [HttpPost("api/v3/xkts/save_zhenrong")]
+        public JObject _3_xkts_save_zhenrong([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 104;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            xkts.FirstRoleID = value["FirstRoleID"].ToString();
+            xkts.zfDict = value["zfDict"].ToString();
+            xkts.JJCRoles = value["JJCRoles"].ToString();
+            dbh.Db.Updateable(xkts).UpdateColumns("FirstRoleID", "zfDict", "JJCRoles").ExecuteCommand();
+
+            //{"code":0,"type":104,"message":"success"}
+            ResObj["code"] = 0;
+            ResObj["type"] = 104;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+        [HttpPost("api/v3/xkts/get_reward")]
+        public JObject _3_xkts_get_reward([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 108;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            if (xkts.getRewardTime.Date >= DateTime.Now.Date)
+            {
+                ResObj["message"] = "今天已经领取过奖励";
+                return ResObj;
+            }
+            xkts.getRewardTime = DateTime.Now;
+            dbh.Db.Updateable(xkts).UpdateColumns("getRewardTime").ExecuteCommand();
+            var dval = decodeStarInfo(xkts.star_info);
+            int zlsmby = 1;
+            int zlsj = 100;
+            foreach (int item in dval)
+            {
+                if (item < 100)
+                {
+                    zlsmby += 1;
+                    zlsj += 100;
+                }
+                else if (item < 150)
+                {
+                    zlsmby += 2;
+                    zlsj += 200;
+
+                }
+                else if (item < 170)
+                {
+                    zlsmby += 3;
+                    zlsj += 300;
+
+                }
+                else if (item < 180)
+                {
+                    zlsmby += 4;
+                    zlsj += 400;
+                }
+            }
+            ResObj["data"] = new JObject(
+                new JProperty("zlsmby", zlsmby),
+                new JProperty("zlsj", zlsj)
+            );
+            //{"code":0,"type":108,"message":"success","data":{"zlsmby":12,"zlsj":1200}}
+            ResObj["code"] = 0;
+            ResObj["type"] = 108;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+        [HttpPost("api/v3/xkts/leave")]
+        public JObject _3_xkts_leave([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 106;
+            F2.user account = getUserFromCache();
+
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            if (xkts.tl < 1)
+            {
+                ResObj["message"] = "体力不足";
+                return ResObj;
+            }
+
+            xkts.tl--;
+            var xkts_zhen_rong = getNewSearch3(dbh, account, ref xkts);
+            xkts.zhen_rong = xkts_zhen_rong.ToString(Formatting.None);
+            dbh.Db.Updateable(xkts).UpdateColumns("tl", "current_explore", "current_explore_id", "zhen_rong").ExecuteCommand();
+            var ztl = getXktsZdtl(account.cz);
+            //{"code":1,"type":106,"message":"体力不足"}
+            ResObj["data"] = new JObject(
+                new JProperty("zhen_rong", xkts_zhen_rong),
+              new JProperty("max_tl", ztl),
+              new JProperty("tl", xkts.tl),
+              new JProperty("czjf", 0),
+              new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
+              new JProperty("current_explore", xkts.current_explore),
+              new JProperty("star_info", decodeStarInfo(xkts.star_info)),
+              new JProperty("recover_time", xkts.recover_time)
+              );
+            ResObj["code"] = 0;
+            ResObj["type"] = 106;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+        [HttpPost("api/v3/xkts/xkts_logs")]
+        public JObject _3_xkts_xkts_logs([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 111;
+            F2.user account = getUserFromCache();
+
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            JArray ja = new JArray();
+            if (!string.IsNullOrEmpty(xkts.logs))
+            {
+                var logsArr = xkts.logs.Split('|');
+                string s2 = "";
+                if (logsArr.Length > 20)
+                {
+                    for (int i = 0; i < 20; i++)
+                    {
+                        s2 += "|" + logsArr[i];
+                    }
+                    xkts.logs = s2.Substring(1);
+                    dbh.Db.Updateable(xkts).UpdateColumns("logs").ExecuteCommand();
+                }
+                for (int i = logsArr.Length - 1; i > Math.Max(0, logsArr.Length - 20); i--)
+                {
+                    ja.Add(logsArr[i]);
+                }
+            }
+            //{"code":0,"type":111,"message":"success","data":[]}
+            ResObj["data"] = ja;
+            ResObj["code"] = 0;
+            ResObj["type"] = 111;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+        [HttpPost("api/v3/xkts/bug_tl")]
+        public JObject _3_xkts_bug_tl([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 110;
+            F2.user account = getUserFromCache();
+            if (account.shl < 100)
+            {
+                ResObj["message"] = "商会令不足100";
+                return ResObj;
+            }
+            if (account.userdata != "{}")
+            {
+                ResObj["message"] = "账号当前状态不可消耗商会令！\n请注销后重新登录";
+                return ResObj;
+            }
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            var ztl = getXktsZdtl(account.cz);
+            dbh.Db.Updateable(account).SetColumns(ii => ii.shl == ii.shl - 100).ExecuteCommand();
+            dbh.Db.Updateable<F2.xkts>(xkts).SetColumns(ii => ii.tl == ztl).ExecuteCommand();
+            ResObj["data"] = new JObject(
+                new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
+              new JProperty("max_tl", ztl),
+              new JProperty("tl", ztl),
+              new JProperty("czjf", 0),
+              new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
+              new JProperty("current_explore", xkts.current_explore),
+              new JProperty("star_info", decodeStarInfo(xkts.star_info)),
+              new JProperty("recover_time", xkts.recover_time)
+              );
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 110;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+
+        [HttpPost("api/v3/xkts/give_up_star")]
+        public JObject _3_xkts_give_up_star([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 109;
+            F2.user account = getUserFromCache();
+
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            int starid = value["star_id"].AsInt();
+            var dval = decodeStarInfo(xkts.star_info);
+            var tmpv = "";
+            foreach (int item in dval)
+            {
+                if (item != starid)
+                {
+                    tmpv += "," + item.ToString() + ",";
+                }
+            }
+            xkts.star_info = tmpv;
+
+            dbh.Db.Updateable(xkts).UpdateColumns("star_info").ExecuteCommand();
+            var ztl = getXktsZdtl(account.cz);
+            ResObj["data"] = new JObject(
+                new JProperty("zhen_rong", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
+              new JProperty("max_tl", ztl),
+              new JProperty("tl", xkts.tl),
+              new JProperty("czjf", 0),
+              new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
+              new JProperty("current_explore", xkts.current_explore),
+              new JProperty("star_info", decodeStarInfo(xkts.star_info)),
+              new JProperty("recover_time", xkts.recover_time)
+              );
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 109;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+
+        [HttpPost("api/v3/xkts/success")]
+        public JObject _3_xkts_success([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 103;
+            F2.user account = getUserFromCache();
+            var dbh = DbContext.Get();
+            F2.xkts xkts = dbh.Db.Queryable<F2.xkts>().First(ii => ii.playerId == account.id);
+            if (xkts == null)
+            {
+                ResObj["message"] = "未开启星空探索";
+                return ResObj;
+            }
+            string ttstr = "," + xkts.current_explore_id.ToString() + ",";
+            var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+            if (dd == null)
+            {
+                ResObj["message"] = "星球已被其他人抢走了";
+                return ResObj;
+            }
+            if (dd.playerId == account.id)
+            {
+                //已被自己占领的星球
+                ResObj["message"] = "星球已被自己占领";
+                return ResObj;
+            }
+            else if (!string.IsNullOrEmpty(dd.JJCRoles) && dd.JJCRoles.Length > 10)
+            {
+                dd.star_info = dd.star_info.Replace(ttstr, ",");
+                dd.logs += "|" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "你的第" + xkts.current_explore_id + "号星球被 " + xkts.playerName + " 抢走";
+                dbh.Db.Updateable(dd).UpdateColumns("star_info", "logs").ExecuteCommand();
+            }
+            else
+            {
+                ResObj["message"] = "星球已被其他人抢走了！";
+                return ResObj;
+            }
+
+            xkts.star_info += "," + xkts.current_explore_id + ",";
+            var xkts_zhen_rong = getNewSearch3(dbh, account, ref xkts);
+            xkts.zhen_rong = xkts_zhen_rong.ToString(Formatting.None);
+            dbh.Db.Updateable(xkts).UpdateColumns("current_explore", "current_explore_id", "star_info", "zhen_rong").ExecuteCommand();
+            var ztl = getXktsZdtl(account.cz);
+            ResObj["data"] = new JObject(
+                new JProperty("zhen_rong", xkts_zhen_rong),
+                new JProperty("reward", "getSMBY"),   //none,getSj,getSMBY
+                new JProperty("current_explore", xkts.current_explore),
+                new JProperty("max_tl", ztl),
+                new JProperty("tl", xkts.tl),
+                new JProperty("start_recover", xkts.start_recover.AsTimestamp()),
+                new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
+                new JProperty("recover_time", xkts.recover_time),
+                new JProperty("last_explore_event", 0),
+                new JProperty("star_info", decodeStarInfo(xkts.star_info))
+            );
+
+            ResObj["code"] = 0;
+            ResObj["type"] = 103;
+            ResObj["message"] = "success";
+            return ResObj;
+        }
+
+
+
+        #endregion 星空探索3
 
     }
 
