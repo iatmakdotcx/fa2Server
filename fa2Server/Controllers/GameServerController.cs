@@ -153,17 +153,86 @@ namespace fa2Server.Controllers
             DbContext.Get().Db.Updateable(mi_Jing).UpdateColumns(ii => ii.enemyData).ExecuteCommand();                
             return ResObj;
         }
-        private int getsjCount(JObject playerData)
+
+        private static List<string> 祖树装备 = new List<string>()
         {
-            int sjsl = 0;
+            "5,77",//祖树头冠
+            "6,69",//祖树战靴
+            "11,85",//祖树神盾
+            "7,76",//祖树腰带
+            "13,329",//祖树神剑图纸
+            "13,330",//祖树披风图纸
+            "13,331",//祖树指环图纸
+            "13,332",//祖树项链图纸
+            "13,333",//祖树手镯图纸
+            "13,334",//祖树头冠图纸
+            "13,335",//祖树战靴图纸
+            "13,336",//祖树腰带图纸
+            "13,337",//祖树神盾图纸
+            "0,195",//祖树神剑
+            "1,74",//祖树披风
+            "2,80",//祖树指环
+            "3,95",//祖树之心
+            "4,77",//祖树手镯
+        };
+        private void 计算祖树装备数量(F2.user account)
+        {
+            JObject playerData = (JObject)JsonConvert.DeserializeObject(account.player_data);
+            var 祖树装备数量 = 0;
             foreach (var item in (JArray)playerData["playerDict"]["packageArr"])
             {
-
+                var itemType = item["itemType"].AsInt();
+                var childType = item["childType"].AsInt();
+                var num = item["num"].AsInt(1);
+                if (祖树装备.Contains(itemType + "," + childType))
+                {
+                    祖树装备数量 += num;
+                }
             }
 
-
-
-             return 0;
+            foreach (var item in (JArray)playerData["playerDict"]["cangkuArr"])
+            {
+                var itemType = item["itemType"].AsInt();
+                var childType = item["childType"].AsInt();
+                var num = item["num"].AsInt(1);
+                if (祖树装备.Contains(itemType + "," + childType))
+                {
+                    祖树装备数量 += num;
+                }
+            }
+            foreach (var item in (JArray)playerData["playerDict"]["battleRolesArr"])
+            {
+                if (item["addDict"] != null && item["addDict"]["equipDict"] != null)
+                {
+                    foreach (var zb in (JObject)item["addDict"]["equipDict"])
+                    {
+                        var itemType = zb.Value["itemType"].AsInt();
+                        var childType = zb.Value["childType"].AsInt();
+                        var num = zb.Value["num"].AsInt(1);
+                        if (祖树装备.Contains(itemType + "," + childType))
+                        {
+                            祖树装备数量 += num;
+                        }
+                    }
+                }
+            }
+            foreach (var item in (JArray)playerData["playerDict"]["rolesArr"])
+            {
+                if (item["addDict"] != null && item["addDict"]["equipDict"] != null)
+                {
+                    foreach (var zb in (JObject)item["addDict"]["equipDict"])
+                    {
+                        var itemType = zb.Value["itemType"].AsInt();
+                        var childType = zb.Value["childType"].AsInt();
+                        var num = zb.Value["num"].AsInt(1);
+                        if (祖树装备.Contains(itemType + "," + childType))
+                        {
+                            祖树装备数量 += num;
+                        }
+                    }
+                }
+            }
+            account.zszbSl = 祖树装备数量;
         }
         private bool compareJsonObj(JToken data1, JToken data2)
         {
@@ -173,7 +242,7 @@ namespace fa2Server.Controllers
             Array.Sort(b);
             return new string(a) == new string(b);
         }
-        private void checkPackageItemNotEqual(JObject oldData, JObject newData,ref StringBuilder zbMsg)
+        private void checkPackageItem(JObject oldData, JObject newData,ref StringBuilder zbMsg)
         {
             List<GameItem> OldItem = new List<GameItem>();
             foreach (var tmpitem in (JArray)oldData["playerDict"]["packageArr"])
@@ -447,7 +516,7 @@ namespace fa2Server.Controllers
 
 
 
-
+        
 
         [HttpPost("v1/check_code")]
         public string check_code([FromBody] JObject value)
@@ -645,6 +714,8 @@ namespace fa2Server.Controllers
             {
                 account.ClientCheatMsg = value["zbbeizhu"].ToString();
             }
+            account.zszbSl = 0;
+            计算祖树装备数量(account);
             var dbh = DbContext.Get();
             JObject zhong_yao = (JObject)JsonConvert.DeserializeObject(account.player_zhong_yao);
             account.lastDCTime = zhong_yao["lastDCTime"].ToString().AsInt();
@@ -4884,7 +4955,8 @@ namespace fa2Server.Controllers
         }
 
         Random r = new Random();
-        private void getReward(ref JObject rewobj, JValue objvalue)
+
+        private void getReward(ref JObject rewobj, JValue objvalue, F2.user account, DbContext dbh)
         {
             var enemyId = objvalue.AsInt();
             switch (enemyId)
@@ -4967,53 +5039,111 @@ namespace fa2Server.Controllers
                         switch (r.Next(10))
                         {
                             case 0:
+                                //((JArray)rewobj["items"]).Add(new JObject(
+                                //    new JProperty("itemType", "5"),
+                                //    new JProperty("childType", "77"),
+                                //    new JProperty("num", "1")
+                                //));
                                 ((JArray)rewobj["items"]).Add(new JObject(
-                                    new JProperty("itemType", "5"),
-                                    new JProperty("childType", "77"),
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "329"),
                                     new JProperty("num", "1")
                                 ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
                                 break;
                             case 1:
+                                //((JArray)rewobj["items"]).Add(new JObject(
+                                //    new JProperty("itemType", "6"),
+                                //    new JProperty("childType", "69"),
+                                //    new JProperty("num", "1")
+                                //));
                                 ((JArray)rewobj["items"]).Add(new JObject(
-                                    new JProperty("itemType", "6"),
-                                    new JProperty("childType", "69"),
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "330"),
                                     new JProperty("num", "1")
                                 ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
                                 break;
                             case 2:
+                                //((JArray)rewobj["items"]).Add(new JObject(
+                                //    new JProperty("itemType", "11"),
+                                //    new JProperty("childType", "85"),
+                                //    new JProperty("num", "1")
+                                //));
                                 ((JArray)rewobj["items"]).Add(new JObject(
-                                    new JProperty("itemType", "11"),
-                                    new JProperty("childType", "85"),
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "331"),
                                     new JProperty("num", "1")
                                 ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
                                 break;
                             case 3:
+                                //((JArray)rewobj["items"]).Add(new JObject(
+                                //    new JProperty("itemType", "7"),
+                                //    new JProperty("childType", "76"),
+                                //    new JProperty("num", "1")
+                                //));
                                 ((JArray)rewobj["items"]).Add(new JObject(
-                                    new JProperty("itemType", "7"),
-                                    new JProperty("childType", "76"),
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "332"),
                                     new JProperty("num", "1")
                                 ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
                                 break;
                             case 4:
+                                //((JArray)rewobj["items"]).Add(new JObject(
+                                //    new JProperty("itemType", "1"),
+                                //    new JProperty("childType", "74"),
+                                //    new JProperty("num", "1")
+                                //));
                                 ((JArray)rewobj["items"]).Add(new JObject(
-                                    new JProperty("itemType", "1"),
-                                    new JProperty("childType", "74"),
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "333"),
                                     new JProperty("num", "1")
                                 ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
                                 break;
                             case 5:
+                                //((JArray)rewobj["items"]).Add(new JObject(
+                                //    new JProperty("itemType", "2"),
+                                //    new JProperty("childType", "80"),
+                                //    new JProperty("num", "1")
+                                //));
                                 ((JArray)rewobj["items"]).Add(new JObject(
-                                    new JProperty("itemType", "2"),
-                                    new JProperty("childType", "80"),
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "334"),
                                     new JProperty("num", "1")
                                 ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
                                 break;
                             case 6:
+                                //((JArray)rewobj["items"]).Add(new JObject(
+                                //    new JProperty("itemType", "4"),
+                                //    new JProperty("childType", "77"),
+                                //    new JProperty("num", "1")
+                                //));
                                 ((JArray)rewobj["items"]).Add(new JObject(
-                                    new JProperty("itemType", "4"),
-                                    new JProperty("childType", "77"),
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "335"),
                                     new JProperty("num", "1")
                                 ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 7:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "336"),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 8:
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "337"),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
                                 break;
                             default:
                                 break;
@@ -5046,9 +5176,9 @@ namespace fa2Server.Controllers
                    new JProperty("getSj", 1),
                    new JProperty("items", new JArray())
                );
-                if (j["enemy0"] != null) getReward(ref jitem, (JValue)j["enemy0"]);
-                if (j["enemy1"] != null) getReward(ref jitem, (JValue)j["enemy1"]);
-                if (j["enemy2"] != null) getReward(ref jitem, (JValue)j["enemy2"]);
+                if (j["enemy0"] != null) getReward(ref jitem, (JValue)j["enemy0"], account, dbh);
+                if (j["enemy1"] != null) getReward(ref jitem, (JValue)j["enemy1"], account, dbh);
+                if (j["enemy2"] != null) getReward(ref jitem, (JValue)j["enemy2"], account, dbh);
 
 
                 xkts.current_explore = 0;

@@ -52,6 +52,9 @@ namespace MakC.Data.Model
             /// 每日白嫖宗门币
             /// </summary>
             public int mrbpzmb { get; set; }
+            //祖树装备数量
+            public int zszb { get; set; }
+            public int zszbSl { get; set; }
 
         }
 
@@ -86,6 +89,7 @@ namespace MakC.Data.Model
             /// 秘境状态，0未开启。1报名中，2开战中，3结算中
             /// </summary>
             public int mi_jing_state { get; set; }
+
 
         }
         [SugarTable("setting_hdzx")]
