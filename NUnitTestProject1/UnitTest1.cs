@@ -66,5 +66,16 @@ namespace Tests
             //Assert.AreEqual(data, Encryptdata);
             Assert.Pass();
         }
+
+
+        [Test]
+        public void Test143_decrypt()
+        {
+            string data = "gZepXkhjWSjBwaDDaR0tMyghPCqPZxowF/M6ue/SfFmrHaClv4e3iwlqkLkGNdYHqf22e/DuFPcgmtE98PaBsYDrHjJ2hIfbZHV0SOSkSMjZyEVSz4jFN9QS5m7N2ttn4XDMG/uqvcrp1ivejbZ/WZms/pwkpcs2nElZIUBrvm6rRe8oWSukJVoG0nmZDrYrbIC72oLWqbNdzvwpqdknhydaknhmVHWylsog03Grj8n8g07IPRtJjnsbrAmqrFFgKegLpRMvhEh/eQ1+XdHDph4xz0Zg9Eu6cErQP9d6nUjCKGzyypPS810bLYnd7k0dkgxpnEaBwgeSm3cyG4+3AUYhWTfl/jWEjFySYWj/WPc1gHT/a+MyyaeeBg8MM7OoCHgRr8KWE0QgAusWp5Solg==";
+            string decryptdata = dataHashFilter.AESDecrypt(data, "a3d13784-c67d-46a0-93ea-34bab33b999d", "d7e279ec-df54-48f4-963a-9127309a4944", 1571812536);
+            //string Encryptdata = dataHashFilter.AESEncrypt_475(decryptdata, "", "",1567235435);
+            //Assert.AreEqual(data, Encryptdata);
+            Assert.Pass();
+        }
     }
 }

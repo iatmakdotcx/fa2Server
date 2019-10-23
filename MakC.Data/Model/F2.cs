@@ -376,6 +376,7 @@ namespace MakC.Data.Model
             public DateTime getRewardTime { get; set; }
             public string zhen_rong { get; set; }
             public string logs { get; set; }
+            public string srDict { get; set; }
          
             public bool isAndroid { get; set; }
         }

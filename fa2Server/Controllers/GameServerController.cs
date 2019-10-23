@@ -4354,11 +4354,12 @@ namespace fa2Server.Controllers
                 lszd += 1;
             }
             return lszd;
-        }
+        }        
         private JObject getNewSearch(DbContext dbh,F2.user account ,ref F2.xkts xkts)
         {
             JObject zhen_rong = new JObject();
-            int starid = new Random().Next(0, 300);
+            var r = new Random();
+            int starid = r.Next(0, 500);
             if (starid < 180)
             {
                 string ttstr = "," + starid.ToString() + ",";
@@ -4406,6 +4407,18 @@ namespace fa2Server.Controllers
                 //巨星
                 xkts.current_explore = 4;
                 xkts.current_explore_id = starid;
+            }
+            else if (starid < 450)
+            {
+                //树人
+                xkts.current_explore = 5;
+                xkts.current_explore_id = 0;
+
+                xkts.srDict = new JObject(
+                        new JProperty("enemy0", r.Next(1200, 1206)),
+                        new JProperty("enemy1", r.Next(1200, 1206)),
+                        new JProperty("enemy2", r.Next(1200, 1206))
+                        ).ToString(Formatting.None);
             }
             else
             {
@@ -4482,7 +4495,8 @@ namespace fa2Server.Controllers
                 new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
                 new JProperty("b", xkts.current_explore),
                 new JProperty("f", decodeStarInfo(xkts.star_info)),
-                new JProperty("e", xkts.recover_time)
+                new JProperty("e", xkts.recover_time),
+                new JProperty("j", (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}"))  //srDict = {enemy0:1,enemy1:1:enemy2:1}
 
                 );
             ResObj["code"] = 0;
@@ -4549,15 +4563,16 @@ namespace fa2Server.Controllers
             var ztl = getXktsZdtl(account.cz);
             ResObj["data"] = new JObject(
                 new JProperty("h", xkts_zhen_rong),
-                new JProperty("reward", rewardData),   //none,getSj,getSMBY
+                new JProperty("i", rewardData),   //none,getSj,getSMBY
                 new JProperty("b", xkts.current_explore),
                 new JProperty("d", ztl),
                 new JProperty("a", xkts.tl),
                 new JProperty("start_recover", xkts.start_recover.AsTimestamp()),
                 new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
                 new JProperty("e", xkts.recover_time),
-                new JProperty("last_explore_event", 0),
-                new JProperty("f", decodeStarInfo(xkts.star_info))
+                new JProperty("g", 0),
+                new JProperty("f", decodeStarInfo(xkts.star_info)),
+                new JProperty("j", (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}"))
             );
             ResObj["code"] = 0;
             ResObj["type"] = 103;
@@ -4710,7 +4725,8 @@ namespace fa2Server.Controllers
               new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
               new JProperty("b", xkts.current_explore),
               new JProperty("f", decodeStarInfo(xkts.star_info)),
-              new JProperty("e", xkts.recover_time)
+              new JProperty("e", xkts.recover_time),
+                new JProperty("j", (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}"))
               );
             ResObj["code"] = 0;
             ResObj["type"] = 106;
@@ -4793,7 +4809,8 @@ namespace fa2Server.Controllers
               new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
               new JProperty("b", xkts.current_explore),
               new JProperty("f", decodeStarInfo(xkts.star_info)),
-              new JProperty("e", xkts.recover_time)
+              new JProperty("e", xkts.recover_time),
+                new JProperty("j", (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}"))
               );
 
             ResObj["code"] = 0;
@@ -4839,7 +4856,8 @@ namespace fa2Server.Controllers
               new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
               new JProperty("b", xkts.current_explore),
               new JProperty("f", decodeStarInfo(xkts.star_info)),
-              new JProperty("e", xkts.recover_time)
+              new JProperty("e", xkts.recover_time),
+                new JProperty("j", (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}"))
               );
 
             ResObj["code"] = 0;
@@ -4862,46 +4880,55 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "未开启星空探索";
                 return ResObj;
             }
-            string ttstr = "," + xkts.current_explore_id.ToString() + ",";
-            var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
-            if (dd == null)
+            if (xkts.current_explore == 5 && xkts.current_explore_id == 0)
             {
-                ResObj["message"] = "星球已被其他人抢走了";
-                return ResObj;
-            }
-            if (dd.playerId == account.id)
-            {
-                //已被自己占领的星球
-                ResObj["message"] = "星球已被自己占领";
-                return ResObj;
-            }
-            else if (!string.IsNullOrEmpty(dd.JJCRoles) && dd.JJCRoles.Length > 10)
-            {
-                dd.star_info = dd.star_info.Replace(ttstr, ",");
-                dd.logs += "|" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "你的第" + xkts.current_explore_id + "号星球被 " + xkts.playerName + " 抢走";
-                dbh.Db.Updateable(dd).UpdateColumns("star_info","logs").ExecuteCommand();
+                //挑战树人
+
+
             }
             else
             {
-                ResObj["message"] = "星球已被其他人抢走了！";
-                return ResObj;
+                //占领星球
+                string ttstr = "," + xkts.current_explore_id.ToString() + ",";
+                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+                if (dd == null)
+                {
+                    ResObj["message"] = "星球已被其他人抢走了";
+                    return ResObj;
+                }
+                if (dd.playerId == account.id)
+                {
+                    //已被自己占领的星球
+                    ResObj["message"] = "星球已被自己占领";
+                    return ResObj;
+                }
+                else if (!string.IsNullOrEmpty(dd.JJCRoles) && dd.JJCRoles.Length > 10)
+                {
+                    dd.star_info = dd.star_info.Replace(ttstr, ",");
+                    dd.logs += "|" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "你的第" + xkts.current_explore_id + "号星球被 " + xkts.playerName + " 抢走";
+                    dbh.Db.Updateable(dd).UpdateColumns("star_info", "logs").ExecuteCommand();
+                }
+                else
+                {
+                    ResObj["message"] = "星球已被其他人抢走了！";
+                    return ResObj;
+                }
+                xkts.star_info += "," + xkts.current_explore_id + ",";
             }
-
-            xkts.star_info += "," + xkts.current_explore_id + ",";
             var xkts_zhen_rong = getNewSearch(dbh, account, ref xkts);
             xkts.zhen_rong = xkts_zhen_rong.ToString(Formatting.None);
             dbh.Db.Updateable(xkts).UpdateColumns("current_explore", "current_explore_id", "star_info", "zhen_rong").ExecuteCommand();
             var ztl = getXktsZdtl(account.cz);
             ResObj["data"] = new JObject(
                 new JProperty("h", xkts_zhen_rong),
-                new JProperty("reward", "getSMBY"),   //none,getSj,getSMBY
+                new JProperty("i", "getSMBY"),   //none,getSj,getSMBY
                 new JProperty("b", xkts.current_explore),
                 new JProperty("d", ztl),
                 new JProperty("a", xkts.tl),
                 new JProperty("start_recover", xkts.start_recover.AsTimestamp()),
                 new JProperty("last_explore", xkts.last_explore.AsTimestamp()),
                 new JProperty("e", xkts.recover_time),
-                new JProperty("last_explore_event", 0),
+                new JProperty("g", 0),
                 new JProperty("f", decodeStarInfo(xkts.star_info))
             );
 

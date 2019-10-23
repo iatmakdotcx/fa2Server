@@ -221,7 +221,18 @@ namespace fa2Server
                 MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
                 long ServerTime = (DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000;
                 context.Response.Headers.Add("Server-Time", ServerTime.ToString());
-                ResponseBody = Response_AESEncrypt(ResponseBody, uuid, token, ServerTime);
+                if (context.Request.Path.Value.Contains("/api/v4/"))
+                {
+                    //加盐
+                    var xx = (JObject)JsonConvert.DeserializeObject(ResponseBody);
+                    xx["userDefR"] = "79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8";
+                    xx["userHpR"] = "yCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7C77A";
+                    xx["userAtkR"] = "iOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7";
+                    ResponseBody = Response_AESEncrypt_475(xx.ToString(Newtonsoft.Json.Formatting.None), uuid, token, ServerTime);
+                }
+                else
+                    ResponseBody = Response_AESEncrypt(ResponseBody, uuid, token, ServerTime);
+
                 context.Response.Headers.Add("Sign2", Response_ios460_getSign(ResponseBody, token));
 
                 using (var writer = new StreamWriter(response))
@@ -376,7 +387,25 @@ namespace fa2Server
                 account = dbh.Db.Queryable<F2.user>()
                     //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
                     .First(ii => ii.username == dJo["user_name"].ToString());
-            } else if (!string.IsNullOrEmpty(token))
+            }
+            else if (context.Request.Path.Value.Contains("/api/v4/"))
+            {
+                account = dbh.Db.Queryable<F2.user>()
+                    //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
+                    .First(ii => ii.token == token);
+                if (account == null)
+                {
+                    return null;
+                }
+                bodyData = AESDecrypt_475(bodyData, account.uuid, token, ServerTime);
+                if (bodyData == null)
+                {
+                    return null;
+                }
+                dJo = (JObject)JsonConvert.DeserializeObject(bodyData);
+                uuid = account.uuid;
+            }
+            else if (!string.IsNullOrEmpty(token))
             {
                 account = dbh.Db.Queryable<F2.user>()
                     //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
@@ -464,7 +493,6 @@ namespace fa2Server
             }
             return resultStr;
         }
-
         public static string AESDecrypt_475(string Data, string uuid, string token, long ServerTime)
         {
             string key;
@@ -546,6 +574,122 @@ namespace fa2Server
             }
         }
 
+        public static string Response_AESDecrypt_475(string Data, string uuid, string token, long ServerTime)
+        {
+            string key;
+            string iv;
+            string randStr = "";
+            for (int i = 0; i < 128 / 4; i++)
+            {
+                randStr += Data.Substring(6 + i * 6, 4);
+                Data = Data.Remove(6 + i * 6, 4);
+            }
+            Response_ios475_getAESKey(uuid, token, ServerTime, randStr, out key, out iv);
+
+            //使用AES（CBC）解密
+            Byte[] original = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream(Convert.FromBase64String(Data)))
+                {
+                    using (CryptoStream Decryptor = new CryptoStream(Memory,
+                    Aes.CreateDecryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Read))
+                    {
+                        using (MemoryStream originalMemory = new MemoryStream())
+                        {
+                            Byte[] Buffer = new Byte[1024];
+                            Int32 readBytes = 0;
+                            while ((readBytes = Decryptor.Read(Buffer, 0, Buffer.Length)) > 0)
+                            {
+                                originalMemory.Write(Buffer, 0, readBytes);
+                            }
+                            original = originalMemory.ToArray();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            return Encoding.UTF8.GetString(original);
+        }
+        public static string Response_AESEncrypt_475(string Data, string uuid, string token, long ServerTime)
+        {
+            string key;
+            string iv;
+            string randStr = "UiPL68O700HViOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7C77ANY6w4n0bTV9dageVA1SD5Anhw2t6ULfyvNY";
+            Response_ios475_getAESKey(uuid, token, ServerTime, randStr, out key, out iv);
+
+            //使用AES（CBC）加密
+            Byte[] Cryptograph = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream())
+                {
+                    using (CryptoStream Encryptor = new CryptoStream(Memory,
+                    Aes.CreateEncryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Write))
+                    {
+                        Byte[] plainBytes = Encoding.UTF8.GetBytes(Data);
+                        Encryptor.Write(plainBytes, 0, plainBytes.Length);
+                        Encryptor.FlushFinalBlock();
+                        Cryptograph = Memory.ToArray();
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            string resultStr = Convert.ToBase64String(Cryptograph);
+            for (int i = 0; i < 128 / 4; i++)
+            {
+                string subStr = randStr.Substring(i * 4, 4);
+                resultStr = resultStr.Insert(6 + i * 6 + i * 4, subStr);
+            }
+            return resultStr;
+        }
+        public static void Response_ios475_getAESKey(string uuid, string token, long ServerTime, string randStr, out string key, out string iv)
+        {
+            string key1 = MD5Hash(uuid + (ServerTime / 27).ToString() + randStr.Substring(0, 0x20));
+            string key2 = MD5Hash(((ServerTime % 27) + ServerTime).ToString() + randStr.Substring(0x20, 0x20));
+            string key3 = MD5Hash((ServerTime % 27).ToString() + MD5Hash(token).Substring(4, 16) + randStr.Substring(0x40, 0x20));
+            string key4 = MD5Hash(key1 + key2 + key3 + randStr.Substring(0x60, 0x20));
+
+            string v36 = key1 + key1;
+            string v37 = key2 + key2;
+            string v38 = key3 + key3;
+            string v39 = key4 + key4;
+            int v40 = (int)(ServerTime % 27);
+            if ((ServerTime & 1) > 0)
+            {
+                key = v37.Substring(v40, 11) +
+                      v39.Substring(v40 + 11, 4) +
+                      v36.Substring(v40 + 15, 11) +
+                      v38.Substring(v40 + 26, 6);
+            }
+            else
+            {
+                key = v36.Substring(v40, 3) +
+                      v38.Substring(v40 + 3, 11) +
+                      v37.Substring(v40 + 14, 7) +
+                      v39.Substring(v40 + 21, 11);
+            }
+            string v25 = "4Sxw7ir3Ul9inXLtvsWVaHTCZY809sWQmf3pUzQ3WqGrJJnTMFFA4Oz9oQIT8wRii7l00ORvTWU4Oh9Ao6ezjK1LXeOq8FIpL7xSsjYhi2Ks7UoYOGk8TPxIzJAda38b".Substring((int)(ServerTime % 119), 9);            
+            string v26 = v39.Substring((int)(ServerTime % 25), 7);
+            if ((ServerTime & 1) > 0)
+            {
+                iv = v25 + v26;
+            }
+            else
+            {
+                iv = v26 + v25;
+            }
+        }
 
 
         public static string AESDecrypt(string Data, string uuid, string token, long ServerTime)
