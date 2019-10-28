@@ -5034,7 +5034,7 @@ namespace fa2Server.Controllers
                 case 1205:
                     rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 5;
                     rewobj["getSj"] = rewobj["getSj"].AsInt() + 500;
-                    if (r.Next(1000) <= 100)
+                    if (r.Next(1000) <= 50)
                     {
                         switch (r.Next(10))
                         {

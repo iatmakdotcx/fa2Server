@@ -343,10 +343,13 @@ namespace fa2Server
                 if (data["net_id"] != null)
                 {
                     int net_id = data["net_id"].ToString().AsInt();
+#if DEBUG
+#else
                     if (account.net_id >= net_id)
                     {
                         return "无效的网络请求!";
                     }
+#endif
                     account.net_id = net_id;
                     var dbh = DbContext.Get();
                     dbh.Db.Updateable(account).UpdateColumns(ii => ii.net_id).ExecuteCommand();
