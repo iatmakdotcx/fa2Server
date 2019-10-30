@@ -230,6 +230,15 @@ namespace fa2Server
                     xx["userAtkR"] = "iOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7";
                     ResponseBody = Response_AESEncrypt_475(xx.ToString(Newtonsoft.Json.Formatting.None), uuid, token, ServerTime);
                 }
+                else if (context.Request.Path.Value.Contains("/api/v4_a/"))
+                {
+                    //加盐
+                    var xx = (JObject)JsonConvert.DeserializeObject(ResponseBody);
+                    xx["userDefR"] = "79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8";
+                    xx["userHpR"] = "yCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7C77A";
+                    xx["userAtkR"] = "iOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7";
+                    ResponseBody = Response_AESEncrypt_Android_144(xx.ToString(Newtonsoft.Json.Formatting.None), uuid, token, ServerTime);
+                }
                 else
                     ResponseBody = Response_AESEncrypt(ResponseBody, uuid, token, ServerTime);
 
@@ -400,7 +409,16 @@ namespace fa2Server
                 {
                     return null;
                 }
-                bodyData = AESDecrypt_475(bodyData, account.uuid, token, ServerTime);
+                if (context.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1)
+                {
+                    //is Android
+                    context.Request.Path = new PathString(context.Request.Path.Value.Replace("/api/v4/", "/api/v4_a/"));
+                    bodyData = AESDecrypt_Android_144(bodyData, account.uuid, token, ServerTime);
+                }
+                else
+                {
+                    bodyData = AESDecrypt_475(bodyData, account.uuid, token, ServerTime);
+                }
                 if (bodyData == null)
                 {
                     return null;
@@ -957,40 +975,17 @@ namespace fa2Server
         }
 
 
-        public static string AESEncrypt_Android_143(string Data, string uuid, string token, long ServerTime)
+        public static string AESDecrypt_Android_144(string Data, string uuid, string token, long ServerTime)
         {
             string key;
             string iv;
-            getAESKey_Android_143(uuid, token, ServerTime, out key, out iv);
-            //使用AES（CBC）加密
-            Byte[] Cryptograph = null;
-            Rijndael Aes = Rijndael.Create();
-            try
+            string randStr = "";
+            for (int i = 0; i < 128 / 4; i++)
             {
-                using (MemoryStream Memory = new MemoryStream())
-                {
-                    using (CryptoStream Encryptor = new CryptoStream(Memory,
-                    Aes.CreateEncryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
-                    CryptoStreamMode.Write))
-                    {
-                        Byte[] plainBytes = Encoding.UTF8.GetBytes(Data);
-                        Encryptor.Write(plainBytes, 0, plainBytes.Length);
-                        Encryptor.FlushFinalBlock();
-                        Cryptograph = Memory.ToArray();
-                    }
-                }
+                randStr += Data.Substring(6 + i * 6, 4);
+                Data = Data.Remove(6 + i * 6, 4);
             }
-            catch
-            {
-                return null;
-            }
-            return Convert.ToBase64String(Cryptograph);
-        }
-        public static string AESDecrypt_Android_143(string Data, string uuid, string token, long ServerTime)
-        {
-            string key;
-            string iv;
-            getAESKey_Android_143(uuid, token, ServerTime, out key, out iv);
+            getAESKey_Android_144(uuid, token, ServerTime, randStr, out key, out iv);
 
             //使用AES（CBC）解密
             Byte[] original = null;
@@ -1031,7 +1026,7 @@ namespace fa2Server
         /// <param name="randStr"></param>
         /// <param name="key"></param>
         /// <param name="iv"></param>
-        public static void getAESKey_Android_143_133(string uuid, string token, long ServerTime, string randStr, out string key, out string iv)
+        public static void getAESKey_Android_144(string uuid, string token, long ServerTime, string randStr, out string key, out string iv)
         {
             string key1 = MD5Hash(uuid + (ServerTime / 29).ToString() + randStr.Substring(0, 0x20));
             string key2 = MD5Hash(((ServerTime % 29) + ServerTime).ToString() + randStr.Substring(0x20, 0x20));
@@ -1069,43 +1064,125 @@ namespace fa2Server
                 iv = v37 + v36;
             }
         }
-        public static void getAESKey_Android_143(string uuid, string token, long ServerTime, out string key, out string iv)
+
+
+        public static string Response_AESDecrypt_Android_144(string Data, string uuid, string token, long ServerTime)
         {
-            string key1 = MD5Hash(uuid + (ServerTime / 29).ToString());
-            string key2 = MD5Hash(((ServerTime % 29) + ServerTime).ToString());
-            string key3 = MD5Hash((ServerTime % 29).ToString() + MD5Hash(token).Substring(4, 16));
-            string key4 = MD5Hash(key1 + key2 + key3);
+            string key;
+            string iv;
+            string randStr = "";
+            for (int i = 0; i < 128 / 4; i++)
+            {
+                randStr += Data.Substring(6 + i * 6, 4);
+                Data = Data.Remove(6 + i * 6, 4);
+            }
+            Response_getAESKey_Android_144(uuid, token, ServerTime, randStr, out key, out iv);
+
+            //使用AES（CBC）解密
+            Byte[] original = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream(Convert.FromBase64String(Data)))
+                {
+                    using (CryptoStream Decryptor = new CryptoStream(Memory,
+                    Aes.CreateDecryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Read))
+                    {
+                        using (MemoryStream originalMemory = new MemoryStream())
+                        {
+                            Byte[] Buffer = new Byte[1024];
+                            Int32 readBytes = 0;
+                            while ((readBytes = Decryptor.Read(Buffer, 0, Buffer.Length)) > 0)
+                            {
+                                originalMemory.Write(Buffer, 0, readBytes);
+                            }
+                            original = originalMemory.ToArray();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            return Encoding.UTF8.GetString(original);
+        }
+        public static string Response_AESEncrypt_Android_144(string Data, string uuid, string token, long ServerTime)
+        {
+            string key;
+            string iv;
+            string randStr = "UiPL68O700HViOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7C77ANY6w4n0bTV9dageVA1SD5Anhw2t6ULfyvNY";
+            Response_getAESKey_Android_144(uuid, token, ServerTime, randStr, out key, out iv);
+
+            //使用AES（CBC）加密
+            Byte[] Cryptograph = null;
+            Rijndael Aes = Rijndael.Create();
+            try
+            {
+                using (MemoryStream Memory = new MemoryStream())
+                {
+                    using (CryptoStream Encryptor = new CryptoStream(Memory,
+                    Aes.CreateEncryptor(Encoding.ASCII.GetBytes(key), Encoding.ASCII.GetBytes(iv)),
+                    CryptoStreamMode.Write))
+                    {
+                        Byte[] plainBytes = Encoding.UTF8.GetBytes(Data);
+                        Encryptor.Write(plainBytes, 0, plainBytes.Length);
+                        Encryptor.FlushFinalBlock();
+                        Cryptograph = Memory.ToArray();
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            string resultStr = Convert.ToBase64String(Cryptograph);
+            for (int i = 0; i < 128 / 4; i++)
+            {
+                string subStr = randStr.Substring(i * 4, 4);
+                resultStr = resultStr.Insert(6 + i * 6 + i * 4, subStr);
+            }
+            return resultStr;
+        }
+        public static void Response_getAESKey_Android_144(string uuid, string token, long ServerTime, string randStr, out string key, out string iv)
+        {
+            string key1 = MD5Hash(uuid + (ServerTime / 27).ToString() + randStr.Substring(0, 0x20));
+            string key2 = MD5Hash(((ServerTime % 27) + ServerTime).ToString() + randStr.Substring(0x20, 0x20));
+            string key3 = MD5Hash((ServerTime % 27).ToString() + MD5Hash(token).Substring(4, 16) + randStr.Substring(0x40, 0x20));
+            string key4 = MD5Hash(key1 + key2 + key3 + randStr.Substring(0x60, 0x20));
 
             string key1_v = key1 + key1;
             string key2_v = key2 + key2;
             string key3_v = key3 + key3;
             string key4_v = key4 + key4;
 
-            int v25 = (int)(ServerTime % 29);
+            int v25 = (int)(ServerTime % 27);
             if ((ServerTime & 1) > 0)
             {
-                key = key1_v.Substring(v25, 8) +
-                      key3_v.Substring(v25 + 8, 8) +
-                      key2_v.Substring(v25 + 16, 8) +
-                      key4_v.Substring(v25 + 24, 8);
+                key = key2_v.Substring(v25, 7) +
+                      key4_v.Substring(v25 + 7, 4) +
+                      key1_v.Substring(v25 + 11, 12) +
+                      key3_v.Substring(v25 + 23, 9);
             }
             else
             {
-                key = key2_v.Substring(v25, 8) +
-                      key4_v.Substring(v25 + 8, 8) +
-                      key1_v.Substring(v25 + 16, 8) +
-                      key3_v.Substring(v25 + 24, 8);
+                key = key1_v.Substring(v25, 5) +
+                      key3_v.Substring(v25 + 5, 13) +
+                      key2_v.Substring(v25 + 18, 8) +
+                      key4_v.Substring(v25 + 26, 6);
             }
-            string v36 = "IDbOjeDXWJHiJDYClEkArSWWZCHMtxcTnxBfNnoyyPxkdAClolEIRlWSkAIyqSfuwFBWrjZcFYWGUHneMszYaZCzBHhkDamPMKUzkytuiJImLpWeSXWuNcPoliCQsKpB".Substring((int)(ServerTime % 120), 8);
-            string v37 = key4_v.Substring((int)(ServerTime % 24), 8);
+            string v25x = "4Sxw7ir3Ul9inXLtvsWVaHTCZY809sWQmf3pUzQ3WqGrJJnTMFFA4Oz9oQIT8wRii7l00ORvTWU4Oh9Ao6ezjK1LXeOq8FIpL7xSsjYhi2Ks7UoYOGk8TPxIzJAda38b".Substring((int)(ServerTime % 119), 9);
+            string v26 = key4_v.Substring((int)(ServerTime % 25), 7);
             if ((ServerTime & 1) > 0)
             {
-                iv = v36 + v37;
+                iv = v25x + v26;
             }
             else
             {
-                iv = v37 + v36;
+                iv = v26 + v25x;
             }
         }
+
     }
 }

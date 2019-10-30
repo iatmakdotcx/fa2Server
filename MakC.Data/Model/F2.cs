@@ -56,6 +56,14 @@ namespace MakC.Data.Model
             public int zszb { get; set; }
             public int zszbSl { get; set; }
 
+            //飞跃令结束时间
+            public DateTime fylendTime { get; set; }
+            //飞跃令上次获取时间
+            public DateTime fylgetTime { get; set; }            
+            //塔加速开始时间
+            public DateTime jsStartTime { get; set; }
+            //塔加速结束时间
+            public DateTime jsEndTime { get; set; }
         }
 
         [SugarTable("setting")]
