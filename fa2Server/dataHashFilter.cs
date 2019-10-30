@@ -221,7 +221,7 @@ namespace fa2Server
                 MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
                 long ServerTime = (DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000;
                 context.Response.Headers.Add("Server-Time", ServerTime.ToString());
-                if (context.Request.Path.Value.Contains("/api/v4/"))
+                if (context.Request.Path.Value.Contains("/api/v4/") && !context.Request.Path.Value.Contains("/sects/"))
                 {
                     //加盐
                     var xx = (JObject)JsonConvert.DeserializeObject(ResponseBody);
@@ -400,7 +400,7 @@ namespace fa2Server
                     //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
                     .First(ii => ii.username == dJo["user_name"].ToString());
             }
-            else if (context.Request.Path.Value.Contains("/api/v4/"))
+            else if (context.Request.Path.Value.Contains("/api/v4/") && !context.Request.Path.Value.Contains("/sects/"))
             {
                 account = dbh.Db.Queryable<F2.user>()
                     //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
