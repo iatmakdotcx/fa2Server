@@ -4561,7 +4561,7 @@ namespace fa2Server.Controllers
             if (starid < 180)
             {
                 string ttstr = "," + starid.ToString() + ",";
-                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr) && ii.isAndroid == account.isAndroid);
                 if (dd != null)
                 {
                     if (dd.playerId == account.id)
@@ -5334,7 +5334,7 @@ namespace fa2Server.Controllers
             {
                 //占领星球
                 string ttstr = "," + xkts.current_explore_id.ToString() + ",";
-                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr) && ii.isAndroid == account.isAndroid);
                 if (dd == null)
                 {
                     ResObj["message"] = "星球已被其他人抢走了";
@@ -5397,7 +5397,7 @@ namespace fa2Server.Controllers
             if (starid < 180)
             {
                 string ttstr = "," + starid.ToString() + ",";
-                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr) && ii.isAndroid == account.isAndroid);
                 if (dd != null)
                 {
                     if (dd.playerId == account.id)
@@ -5898,7 +5898,7 @@ namespace fa2Server.Controllers
                 return ResObj;
             }
             string ttstr = "," + xkts.current_explore_id.ToString() + ",";
-            var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+            var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr) && ii.isAndroid == account.isAndroid);
             if (dd == null)
             {
                 ResObj["message"] = "星球已被其他人抢走了";
@@ -5959,7 +5959,7 @@ namespace fa2Server.Controllers
             if (starid < 180)
             {
                 string ttstr = "," + starid.ToString() + ",";
-                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr) && ii.isAndroid == account.isAndroid);
                 if (dd != null)
                 {
                     if (dd.playerId == account.id)
@@ -6061,6 +6061,7 @@ namespace fa2Server.Controllers
                 xkts.zfDict = "{}";
                 xkts.JJCRoles = "[]";
                 xkts.zhen_rong = "{}";
+                xkts.isAndroid = true;
 
                 dbh.Db.Insertable(xkts).ExecuteCommand();
             }
@@ -6728,7 +6729,7 @@ namespace fa2Server.Controllers
             {
                 //占领星球
                 string ttstr = "," + xkts.current_explore_id.ToString() + ",";
-                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr));
+                var dd = dbh.Db.Queryable<F2.xkts>().First(ii => ii.star_info.Contains(ttstr) && ii.isAndroid==account.isAndroid);
                 if (dd == null)
                 {
                     ResObj["message"] = "星球已被其他人抢走了";
