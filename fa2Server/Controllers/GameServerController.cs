@@ -1320,6 +1320,333 @@ namespace fa2Server.Controllers
                                 dbh.Db.Insertable(gif).ExecuteCommand();
                                 break;
                             }
+                        case "幸运礼包":
+                            {
+                                var r = new Random();
+                                var r1 = r.Next(0, 10000);
+                                if (r1 < 1000)
+                                {
+                                    //10% ，1-100令
+                                    var l = r.Next(1, 50);
+                                    ResObj["message"] = $"恭喜你抽中了。\n\n商会令:" + l;
+                                    dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.shl == (ii.shl + l)).Where(ii => ii.id == account.id).ExecuteCommand();
+                                    break;
+                                }
+                                if (r1 < 2000)
+                                {
+                                    //10分之一  10-20w宗门币
+                                    int l = new Random().Next(2000000, 3000001);
+                                    dbh.Db.Updateable<F2.sect_member>()
+                                        .SetColumns(ii => ii.sect_coin == (ii.sect_coin + l))
+                                        .Where(ii => ii.playerId == account.id).ExecuteCommand();
+
+                                    ResObj["message"] = $"恭喜你抽中了。\n\n宗门币:" + l;
+                                    break;
+                                }
+                                if (r1 == 8888 || r1 == 9999)
+                                {
+                                    ResObj["message"] = $"恭喜你。\n\n。。。。\n\n你什么都没中";
+                                    break;
+                                }
+
+                                JArray reward_item_info = new JArray();
+                                if (r1 >= 9900)
+                                {
+                                    //10分之一普通神器
+                                    string item;
+                                    if (account.cz > 100 && r1 >= 9990)
+                                    {
+                                        //1‰,真神器
+                                        ResObj["message"] = $"恭喜你抽中了。\n\n真·神器！快去兑换！";
+                                        item = 超神器真[r.Next(0, 超神器真.Count)];
+                                    }
+                                    else if (r1 > 9980)
+                                    {
+                                        //百分之2
+                                        ResObj["message"] = $"恭喜你抽中了。\n\n超神器！快去兑换！";
+                                        item = 超神器假[r.Next(0, 超神器假.Count)];
+                                    }
+                                    else
+                                    {
+                                        //普通神器
+                                        item = 神器[r.Next(0, 神器.Count)];
+                                        ResObj["message"] = $"恭喜你抽中了。\n\n神器！快去兑换！";
+                                    }
+                                    var iarr = item.Split(",");
+                                    reward_item_info.Add(new JObject(new JProperty("childType", iarr[1]), new JProperty("itemType", iarr[0]), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                }
+                                else if (r1 >= 9890 && !account.isAndroid)
+                                {
+                                    //千分之1  祖树套
+                                    switch (r.Next(10))
+                                    {
+                                        case 0:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "329"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 1:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "330"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 2:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "331"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 3:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "332"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 4:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "333"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 5:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "334"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 6:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "335"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 7:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "336"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        case 8:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "337"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                    ResObj["message"] = $"恭喜你。\n\n抽中了点什么，快去兑换试试";
+                                } else if (r1 >= 9870 && !account.isAndroid) {
+                                    switch (r.Next(10))
+                                    {
+                                        case 0:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "10"),
+                                                new JProperty("childType", "92"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 1:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "10"),
+                                                new JProperty("childType", "93"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 2:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "10"),
+                                                new JProperty("childType", "94"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 3:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "10"),
+                                                new JProperty("childType", "95"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 4:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "10"),
+                                                new JProperty("childType", "96"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 5:
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "13"),
+                                                new JProperty("childType", "338"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+
+                                        default:
+                                            reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 100), new JProperty("num", 100)));
+                                            break;
+                                    }
+                                    ResObj["message"] = $"恭喜你。\n\n抽中了点什么，快去兑换试试";
+                                }
+                                else if (r1 >= 9820) {
+                                    //5‰  高级技能
+                                    switch (r.Next(10))
+                                    {
+                                        case 0://拖刀
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "9"),
+                                                new JProperty("childType", "334"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 1://五行剥离
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "9"),
+                                                new JProperty("childType", "276"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 2: //盘古守护
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "9"),
+                                                new JProperty("childType", "333"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 3: //仙龙护体
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "9"),
+                                                new JProperty("childType", "346"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 4: //	 连珠箭
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "9"),
+                                                new JProperty("childType", "296"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+                                        case 5: //雷兽奔袭
+                                            reward_item_info.Add(new JObject(
+                                                new JProperty("itemType", "9"),
+                                                new JProperty("childType", "317"),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            ));
+                                            break;
+
+                                        default:
+                                            reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 100), new JProperty("num", 100)));
+                                            break;
+                                    }
+                                    ResObj["message"] = $"恭喜你。\n\n抽中了点什么，快去兑换试试";
+                                }
+                                else
+                                {
+                                    //二分之一到这里
+                                    var r2 = r.Next(0, 10);
+                                    if (r2 == 0)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 100), new JProperty("num", 100)));
+                                    }
+                                    else if (r2 == 1)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "96"), new JProperty("itemType", "8"), new JProperty("itemNum", 10), new JProperty("num", 10)));
+                                    }
+                                    else if (r2 == 2)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "81"), new JProperty("itemType", "14"), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                    }
+                                    else if (r2 == 3)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "83"), new JProperty("itemType", "14"), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                    }
+                                    else if (r2 == 4)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "82"), new JProperty("itemType", "14"), new JProperty("itemNum", 1), new JProperty("num", 1)));
+                                    }
+                                    else if (r2 == 5)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 333), new JProperty("num", 333)));
+                                    }
+                                    else if (r2 == 6)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "91"), new JProperty("itemType", "8"), new JProperty("itemNum", 200), new JProperty("num", 200)));
+                                    }
+                                    else if (r2 == 7 && !account.isAndroid)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "112"), new JProperty("itemType", "8"), new JProperty("itemNum", 5), new JProperty("num", 5)));
+                                    }
+                                    else if (r2 == 8 && !account.isAndroid)
+                                    {//本源结晶
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "112"), new JProperty("itemType", "8"), new JProperty("itemNum", 10), new JProperty("num", 10)));
+                                    }
+                                    else if (r2 == 9 && !account.isAndroid)
+                                    {
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "112"), new JProperty("itemType", "8"), new JProperty("itemNum", 10), new JProperty("num", 10)));
+                                    }
+                                    else
+                                    {//精致月饼
+                                        reward_item_info.Add(new JObject(new JProperty("childType", "96"), new JProperty("itemType", "8"), new JProperty("itemNum", 10), new JProperty("num", 10)));
+                                    }
+                                    ResObj["message"] = $"恭喜你。\n\n抽中了点什么，快去兑换试试";
+                                }
+                                dbh.Db.Updateable(account).UpdateColumns(ii => new { ii.cjcs, ii.cjs, ii.cjCnt, ii.cheatMsg }).ExecuteCommand();
+                                JObject jo = new JObject(
+                                    new JProperty("error", 0),
+                                    new JProperty("GETBODY", new JObject(
+                                        new JProperty("itemGetArr", reward_item_info)
+                                        ))
+                                    );
+                                F2.giftCode gif = new F2.giftCode();
+                                gif.create_at = DateTime.Now;
+                                gif.uuid = account.uuid;
+                                gif.code = 1;
+                                gif.itemData = jo.ToString(Formatting.None);
+                                dbh.Db.Insertable(gif).ExecuteCommand();
+                                break;
+                            }
                         default:
                             if (shopItem.item_name.StartsWith("神墓体力+"))
                             {
@@ -4732,6 +5059,8 @@ namespace fa2Server.Controllers
             }
             if (xkts.current_explore == 5)
             {
+                MemoryCacheService.Default.SetCache("srtl_" + account.id, "1", 10);
+
                 //挑战树人
                 xkts.tl--;
                 dbh.Db.Updateable(xkts).UpdateColumns("tl").ExecuteCommand();
@@ -5114,6 +5443,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "10"),
                                     new JProperty("childType", "92"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num","1")
                                 )) ;
                                 break;
@@ -5121,6 +5451,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "10"),
                                     new JProperty("childType", "93"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 break;
@@ -5128,6 +5459,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "10"),
                                     new JProperty("childType", "94"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 break;
@@ -5135,6 +5467,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "10"),
                                     new JProperty("childType", "95"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 break;
@@ -5142,6 +5475,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "10"),
                                     new JProperty("childType", "96"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 break;
@@ -5149,6 +5483,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "338"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 break;
@@ -5174,6 +5509,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "329"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5187,6 +5523,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "330"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5200,6 +5537,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "331"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5213,6 +5551,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "332"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5226,6 +5565,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "333"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5239,6 +5579,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "334"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5252,6 +5593,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "335"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5260,6 +5602,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "336"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5268,6 +5611,7 @@ namespace fa2Server.Controllers
                                 ((JArray)rewobj["items"]).Add(new JObject(
                                     new JProperty("itemType", "13"),
                                     new JProperty("childType", "337"),
+                                    new JProperty("itemNum", 1),
                                     new JProperty("num", "1")
                                 ));
                                 dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.zszb == ii.zszb + 1).Where(ii => ii.id == account.id).ExecuteCommand();
@@ -5296,6 +5640,13 @@ namespace fa2Server.Controllers
             if (xkts.current_explore == 5 && xkts.current_explore_id == 0)
             {
                 //挑战树人
+
+                if(MemoryCacheService.Default.GetCache<string>("srtl_" + account.id) != "1")
+                {
+                    ResObj["message"] = "挑战超时！";
+                    return ResObj;
+                }
+                MemoryCacheService.Default.RemoveCache("srtl_" + account.id);
 
                 var j = (JObject)JsonConvert.DeserializeObject(xkts.srDict ?? "{}");
                 JObject jitem = new JObject(
