@@ -221,7 +221,10 @@ namespace fa2Server
                 MemoryCacheService.Default.RemoveCache("account_" + context.TraceIdentifier);
                 long ServerTime = (DateTime.Now.AddHours(8).ToUniversalTime().Ticks - 621355968000000000) / 10000000;
                 context.Response.Headers.Add("Server-Time", ServerTime.ToString());
-                if (context.Request.Path.Value.Contains("/api/v4/") && !context.Request.Path.Value.Contains("/sects/"))
+                if ((context.Request.Path.Value.Contains("/api/v4/") && !context.Request.Path.Value.Contains("/sects/")) 
+                    || context.Request.Path.Value.Contains("/api/v5/")
+                    || context.Request.Path.Value.Contains("/api/v6/")
+                    || context.Request.Path.Value.Contains("/api/v7/"))
                 {
                     //加盐
                     var xx = (JObject)JsonConvert.DeserializeObject(ResponseBody);
@@ -230,7 +233,7 @@ namespace fa2Server
                     xx["userAtkR"] = "iOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7";
                     ResponseBody = Response_AESEncrypt_475(xx.ToString(Newtonsoft.Json.Formatting.None), uuid, token, ServerTime);
                 }
-                else if (context.Request.Path.Value.Contains("/api/v4_a/"))
+                else if (context.Request.Path.Value.Contains("/api/v4_a/") || context.Request.Path.Value.Contains("/api/v7_a/") || context.Request.Path.Value.Contains("/api/v8/"))
                 {
                     //加盐
                     var xx = (JObject)JsonConvert.DeserializeObject(ResponseBody);
@@ -400,7 +403,12 @@ namespace fa2Server
                     //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
                     .First(ii => ii.username == dJo["user_name"].ToString());
             }
-            else if (context.Request.Path.Value.Contains("/api/v4/") && !context.Request.Path.Value.Contains("/sects/"))
+            else if ((context.Request.Path.Value.Contains("/api/v4/") && !context.Request.Path.Value.Contains("/sects/")) 
+                || context.Request.Path.Value.Contains("/api/v5/") 
+                || context.Request.Path.Value.Contains("/api/v6/")
+                || context.Request.Path.Value.Contains("/api/v7/")
+                || context.Request.Path.Value.Contains("/api/v8/")
+                )
             {
                 account = dbh.Db.Queryable<F2.user>()
                     //.IgnoreColumns("cheatMsg", "ClientCheatMsg", "userdata", "player_data", "player_zhong_yao")
@@ -413,6 +421,7 @@ namespace fa2Server
                 {
                     //is Android
                     context.Request.Path = new PathString(context.Request.Path.Value.Replace("/api/v4/", "/api/v4_a/"));
+                    context.Request.Path = new PathString(context.Request.Path.Value.Replace("/api/v7/", "/api/v4_a/"));
                     bodyData = AESDecrypt_Android_144(bodyData, account.uuid, token, ServerTime);
                 }
                 else

@@ -64,6 +64,16 @@ namespace MakC.Data.Model
             public DateTime jsStartTime { get; set; }
             //塔加速结束时间
             public DateTime jsEndTime { get; set; }
+
+            //石人
+            public int sr_sl { get; set; }
+            public int sr_sl_zb { get; set; }
+            //虫族
+            public int cz_sl { get; set; }
+            public int cz_sl_zb { get; set; }
+            //星空
+            public int xk_sl { get; set; }
+            public int xk_sl_zb { get; set; }
         }
 
         [SugarTable("setting")]

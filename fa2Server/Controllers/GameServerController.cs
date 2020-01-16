@@ -174,6 +174,22 @@ namespace fa2Server.Controllers
             "2,80",//祖树指环
             "3,95",//祖树之心
             "4,77",//祖树手镯
+
+
+        };
+
+        private static List<string> 虫皇图纸装备 = new List<string>()
+        {
+            "1,76",//虫皇战甲
+            "3,97",//虫皇项链
+            "5,79",//虫皇战盔
+            "6,71",//虫皇战靴
+            "7,78",//虫皇战带
+            "13,345",//虫皇战甲图纸
+            "13,346",//虫皇项链图纸
+            "13,347",//虫皇战盔图纸
+            "13,348",//虫皇战靴图纸
+            "13,349",//虫皇战带图纸
         };
         private void 计算祖树装备数量(F2.user account)
         {
@@ -2464,7 +2480,19 @@ namespace fa2Server.Controllers
             ResObj["type"] = 59;
             return ResObj;
         }
+        [HttpPost("api/v5/sects/shop")]
+        [HttpPost("api/v4_a/sects/shop")]
+        public JObject sects_shop([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
 
+            ResObj["message"] = "不卖，不卖";
+            ResObj["code"] = 1;
+            ResObj["type"] = 1;
+            return ResObj;
+        }
         [HttpPost("api/v3/sects/dange_info")]
         public JObject sects_dange_info([FromBody] JObject value)
         {
@@ -4884,7 +4912,7 @@ namespace fa2Server.Controllers
         {
             JObject zhen_rong = new JObject();
             var r = new Random();
-            int starid = r.Next(0, 380);
+            int starid = r.Next(0, 800);
             if (starid < 180)
             {
                 string ttstr = "," + starid.ToString() + ",";
@@ -4951,7 +4979,82 @@ namespace fa2Server.Controllers
                         new JProperty("enemy1", r.Next(1200, 1206)),
                         new JProperty("enemy2", r.Next(1200, 1206))
                         ).ToString(Formatting.None);
-//#endif
+                //#endif
+            }
+            else if (starid < 400)
+            {
+                //石人
+                xkts.current_explore = 6;
+                xkts.current_explore_id = 0;
+                xkts.srDict = new JObject(
+                        new JProperty("enemy0", r.Next(1206, 1211)),
+                        new JProperty("enemy1", r.Next(1206, 1211)),
+                        new JProperty("enemy2", r.Next(1206, 1211))
+                        ).ToString(Formatting.None);
+            }
+            else if (starid < 470)
+            {
+                // 星空
+                xkts.current_explore = 8;
+                xkts.current_explore_id = 0;
+
+                xkts.srDict = new JObject(
+                        new JProperty("enemy0", r.Next(1211, 1213)),
+                        new JProperty("enemy1", r.Next(1211, 1213)),
+                        new JProperty("enemy2", r.Next(1211, 1213))
+                        ).ToString(Formatting.None);
+            }
+            else if (starid < 500)
+            {
+                // 虫族守护者
+                xkts.current_explore = 8;
+                xkts.current_explore_id = 0;
+
+                xkts.srDict = new JObject(
+                        new JProperty("enemy0", 1171),
+                        new JProperty("enemy1", 1171),
+                        new JProperty("enemy2", 1171)
+                        ).ToString(Formatting.None);
+            }
+            else if (starid < 700)
+            {
+                //新增星球
+                starid -= 500;
+                starid += 180;
+                if (starid < 280)
+                {
+                    //小
+                    xkts.current_explore = 1;
+                    xkts.current_explore_id = starid;
+                }
+                else if(starid < 330)
+                {
+                    //中
+                    xkts.current_explore = 2;
+                    xkts.current_explore_id = starid;
+                }
+                else if(starid < 350)
+                {
+                    //大
+                    xkts.current_explore = 3;
+                    xkts.current_explore_id = starid;
+                }else if (starid < 360)
+                {
+                    //巨
+                    xkts.current_explore = 4;
+                    xkts.current_explore_id = starid;
+                } else if (starid < 370)
+                {
+                    //超级生命星球
+                    xkts.current_explore = 7;
+                    xkts.current_explore_id = starid;
+                }
+                else
+                {
+                    //荒芜星球
+                    xkts.current_explore = 0;
+                    xkts.current_explore_id = 0;
+                } 
             }
             else
             {
@@ -4963,11 +5066,15 @@ namespace fa2Server.Controllers
             return zhen_rong;
         }
         [HttpPost("api/v4/xkts/get_info")]
+        [HttpPost("api/v6/xkts/get_info")]
+        [HttpPost("api/v7/xkts/get_info")]
+        [HttpPost("api/v8/xkts/get_info")]
         public JObject xkts_get_info([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
             ResObj["type"] = 102;
+
             F2.user account = getUserFromCache();
             //{"code":0,"type":102,"data":{"max_tl":20,"tl":1,"czjf":7005300,"last_explore":1569692945,"current_explore":0,"star_info":[120,125,161,176],"recover_time":8447}}
             var dbh = DbContext.Get();
@@ -5019,9 +5126,8 @@ namespace fa2Server.Controllers
             }
 
             ResObj["data"] = new JObject(
+                new JProperty("z", 0),
                 new JProperty("h", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong??"{}")),
-
-
                 new JProperty("d", ztl),
                 new JProperty("a", xkts.tl),
                 new JProperty("czjf", 0),
@@ -5037,6 +5143,9 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v4/xkts/explore_xq")]
+        [HttpPost("api/v6/xkts/explore_xq")]
+        [HttpPost("api/v7/xkts/explore_xq")]
+        [HttpPost("api/v8/xkts/explore_xq")]
         public JObject xkts_explore_xq([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5057,11 +5166,11 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "体力不足";
                 return ResObj;
             }
-            if (xkts.current_explore == 5)
+            if (xkts.current_explore == 5 || xkts.current_explore == 6 || xkts.current_explore == 8)
             {
                 MemoryCacheService.Default.SetCache("srtl_" + account.id, "1", 10);
 
-                //挑战树人
+                //挑战树人,或石人，或星空虫族
                 xkts.tl--;
                 dbh.Db.Updateable(xkts).UpdateColumns("tl").ExecuteCommand();
                 ResObj["code"] = 0;
@@ -5123,6 +5232,9 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v4/xkts/get_zhenrong")]
+        [HttpPost("api/v6/xkts/get_zhenrong")]
+        [HttpPost("api/v7/xkts/get_zhenrong")]
+        [HttpPost("api/v8/xkts/get_zhenrong")]
         public JObject xkts_get_zhenrong([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5151,6 +5263,9 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v4/xkts/save_zhenrong")]
+        [HttpPost("api/v6/xkts/save_zhenrong")]
+        [HttpPost("api/v7/xkts/save_zhenrong")]
+        [HttpPost("api/v8/xkts/save_zhenrong")]
         public JObject xkts_save_zhenrong([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5176,6 +5291,9 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v4/xkts/get_reward")]
+        [HttpPost("api/v6/xkts/get_reward")]
+        [HttpPost("api/v7/xkts/get_reward")]
+        [HttpPost("api/v8/xkts/get_reward")]
         public JObject xkts_get_reward([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5222,6 +5340,32 @@ namespace fa2Server.Controllers
                 {
                     zlsmby += 4;
                     zlsj += 400;
+                }else
+                if (item < 280)
+                {
+                    zlsmby += 1;
+                    zlsj += 100;
+                }
+                else if (item < 330)
+                {
+                    zlsmby += 2;
+                    zlsj += 200;
+
+                }
+                else if (item < 350)
+                {
+                    zlsmby += 3;
+                    zlsj += 300;
+
+                }
+                else if (item < 360)
+                {
+                    zlsmby += 4;
+                    zlsj += 400;
+                }else if (item < 370)
+                {
+                    zlsmby += 5;
+                    zlsj += 500;
                 }
             }
             ResObj["data"] = new JObject(
@@ -5235,6 +5379,9 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v4/xkts/leave")]
+        [HttpPost("api/v6/xkts/leave")]
+        [HttpPost("api/v7/xkts/leave")]
+        [HttpPost("api/v8/xkts/leave")]
         public JObject xkts_leave([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5278,6 +5425,9 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v4/xkts/xkts_logs")]
+        [HttpPost("api/v6/xkts/xkts_logs")]
+        [HttpPost("api/v7/xkts/xkts_logs")]
+        [HttpPost("api/v8/xkts/xkts_logs")]
         public JObject xkts_xkts_logs([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5319,6 +5469,9 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("api/v4/xkts/bug_tl")]
+        [HttpPost("api/v6/xkts/bug_tl")]
+        [HttpPost("api/v7/xkts/bug_tl")]
+        [HttpPost("api/v8/xkts/bug_tl")]
         public JObject xkts_bug_tl([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5364,6 +5517,9 @@ namespace fa2Server.Controllers
         }
 
         [HttpPost("api/v4/xkts/give_up_star")]
+        [HttpPost("api/v6/xkts/give_up_star")]
+        [HttpPost("api/v7/xkts/give_up_star")]
+        [HttpPost("api/v8/xkts/give_up_star")]
         public JObject xkts_give_up_star([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5435,9 +5591,9 @@ namespace fa2Server.Controllers
                 case 1204:
                     rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 4;
                     rewobj["getSj"] = rewobj["getSj"].AsInt() + 400;
-                    if (r.Next(1000) <= 100)
+                    if (r.Next(1000) <= 200)
                     {
-                        switch (r.Next(10))
+                        switch (r.Next(7))
                         {
                             case 0:
                                 ((JArray)rewobj["items"]).Add(new JObject(
@@ -5496,7 +5652,7 @@ namespace fa2Server.Controllers
                 case 1205:
                     rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 5;
                     rewobj["getSj"] = rewobj["getSj"].AsInt() + 500;
-                    if (r.Next(1000) <= 50)
+                    if (r.Next(1000) <= 100)
                     {
                         switch (r.Next(10))
                         {
@@ -5621,9 +5777,205 @@ namespace fa2Server.Controllers
                         }
                     }
                     break;
+                case 1206:  //石人
+                    
+                    break;
+                case 1207:  //石人守卫
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 1;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 100;
+                    break;
+                case 1208:  //石人长老
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 2;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 200;
+                    break;
+                case 1209:  //石人先知
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 3;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 300;
+                    break;
+                case 1210:  //石人首领
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 4;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 400;
+                    if (r.Next(1000) <= 100)
+                    {
+                        switch (r.Next(5))
+                        {
+                            case 0:  //银月指环图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "339"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 1: //银月手镯图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "340"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 2: //银月印章图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "342"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 3: //石战盾图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "341"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;                            
+
+                            
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                case 1211:  //星石兽
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 4;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 400;
+                    switch (r.Next(10))
+                    {
+                        case 0: //星石幼兽
+                            ((JArray)rewobj["items"]).Add(new JObject(
+                                new JProperty("itemType", "10"),
+                                new JProperty("childType", "97"),
+                                new JProperty("itemNum", 1),
+                                new JProperty("num", "1")
+                            ));
+                            dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                            break;
+
+                        default:
+                            break;
+                    }
+                    break;
+                case 1212:  //银月巨人
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 4;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 400;
+                    if (r.Next(1000) <= 100)
+                    {
+                        switch (r.Next(5))
+                        {
+                            case 0:  //银月指环图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "339"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 1: //银月手镯图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "340"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 2: //银月印章图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "342"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 3: //石战盾图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "341"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+
+
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                case 1171:  //虫族守护者
+                    rewobj["getSMBY"] = rewobj["getSMBY"].AsInt() + 4;
+                    rewobj["getSj"] = rewobj["getSj"].AsInt() + 400;
+                    if (r.Next(1000) <= 100)
+                    {
+                        switch (r.Next(5))
+                        {
+                            case 0:  //虫皇战甲图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "345"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 1: //虫皇项链图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "346"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 2: //虫皇战盔图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "347"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 3: //虫皇战靴图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "348"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;
+                            case 4: //虫皇战带图纸
+                                ((JArray)rewobj["items"]).Add(new JObject(
+                                    new JProperty("itemType", "13"),
+                                    new JProperty("childType", "349"),
+                                    new JProperty("itemNum", 1),
+                                    new JProperty("num", "1")
+                                ));
+                                dbh.Db.Updateable<F2.user>().SetColumns(ii => ii.sr_sl == ii.sr_sl + 1).Where(ii => ii.id == account.id).ExecuteCommand();
+                                break;                            
+
+                            
+                            default:
+                                break;
+                        }
+                    }
+                    break;
             }
         }
         [HttpPost("api/v4/xkts/success")]
+        [HttpPost("api/v6/xkts/success")]
+        [HttpPost("api/v7/xkts/success")]
+        [HttpPost("api/v8/xkts/success")]
         public JObject xkts_success([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
@@ -5637,7 +5989,7 @@ namespace fa2Server.Controllers
                 ResObj["message"] = "未开启星空探索";
                 return ResObj;
             }
-            if (xkts.current_explore == 5 && xkts.current_explore_id == 0)
+            if ((xkts.current_explore == 5||xkts.current_explore == 6||xkts.current_explore == 8) && xkts.current_explore_id == 0)
             {
                 //挑战树人
 
@@ -6442,6 +6794,7 @@ namespace fa2Server.Controllers
             }
 
             ResObj["data"] = new JObject(
+                new JProperty("z", 0),
                 new JProperty("zhen_rong_android", (JObject)JsonConvert.DeserializeObject(xkts.zhen_rong ?? "{}")),
                 new JProperty("max_tl_android", ztl),
                 new JProperty("tl_android", xkts.tl),
@@ -7130,6 +7483,8 @@ namespace fa2Server.Controllers
         }
 
         #endregion 星空探索_Android
+        
+        
     }
 
 
