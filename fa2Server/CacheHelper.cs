@@ -16,8 +16,10 @@ namespace fa2Server
             MemoryCacheService.Default.RemoveCache("db_f2_setting_2");
             MemoryCacheService.Default.RemoveCache("mi_jing_reward");
             MemoryCacheService.Default.RemoveCache("mi_jing_reward_info");
+            MemoryCacheService.Default.RemoveCache("sect_shop_cfg");
             MemoryCacheService.Default.RemoveCache(DateTime.Now.ToString("yyyyMMdd") + "_1");
             MemoryCacheService.Default.RemoveCache(DateTime.Now.ToString("yyyyMMdd") + "_2");
+            Setsect_shop(1);
         }
 
         public static F2.setting GetDBSetting(bool isAndroid)
@@ -203,6 +205,88 @@ namespace fa2Server
                 }
             }
             return tmpData;
+        }
+        public static List<F2.sect_shop_cfg> Getsect_shop_cfg()
+        {
+            List<F2.sect_shop_cfg> tmpData = MemoryCacheService.Default.GetCache<List<F2.sect_shop_cfg>>("sect_shop_cfg");
+            if (tmpData == null)
+            {
+                lock (MemoryCacheService.Default)
+                {
+                    tmpData = MemoryCacheService.Default.GetCache<List<F2.sect_shop_cfg>>("sect_shop_cfg");
+                    if (tmpData == null)
+                    {
+                        tmpData = DbContext.Get().GetEntityDB<F2.sect_shop_cfg>().GetList();
+                        if (tmpData != null)
+                        {
+                            foreach (var item in tmpData)
+                            {
+                                if (item.type == 1)
+                                {
+                                    List<int> li = new List<int>();
+                                    foreach (var cccItem in item.ccc.ToString().Split(","))
+                                    {
+                                        li.Add(int.Parse(cccItem, 0));
+                                    }
+                                    item.ccc = li.ToArray();
+                                }
+                                else if (item.type == 2 || item.type == 3)
+                                {
+                                    List<F2.sect_shop_cfg.cccItem> cccs = new List<F2.sect_shop_cfg.cccItem>();
+                                    foreach (var cccItem in item.ccc.ToString().Split(","))
+                                    {
+                                        var ss = cccItem.Split(":");
+                                        cccs.Add(new F2.sect_shop_cfg.cccItem(int.Parse(ss[0], 0), int.Parse(ss[1], 0)));
+                                    }
+                                    item.ccc = cccs;
+                                }
+                            }
+                            MemoryCacheService.Default.SetCache("sect_shop_cfg", tmpData, 24*60);
+                        }
+                    }
+                }
+            }
+            return tmpData;
+        }
+        public static List<F2.sect_shop> Getsect_shop(int sect_id)
+        {
+            List<F2.sect_shop> tmpData = MemoryCacheService.Default.GetCache<List<F2.sect_shop>>("sect_shop_"+sect_id);
+            return tmpData;
+        }
+        public static void Setsect_shop(int sect_id)
+        {
+            MemoryCacheService.Default.RemoveCache("sect_shop_" + sect_id);
+            List<F2.sect_shop_cfg> shopcfg = Getsect_shop_cfg();
+            List<F2.sect_shop> tmpData = new List<F2.sect_shop>();
+            if (shopcfg != null && shopcfg.Count > 0)
+            {
+                var r = new Random();
+                while (true)
+                {
+                    var acfg = shopcfg[r.Next(0, shopcfg.Count)];
+                    if (r.Next(0, 101) <= acfg.threshold)
+                    {
+                        var si = new F2.sect_shop(acfg);
+                        if (acfg.type == 3)
+                        {
+                            //辣鸡装备
+                            si.RandItem = new F2.sect_shop_cfg();
+                            var lccc = (List<F2.sect_shop_cfg.cccItem>)acfg.ccc;
+                            var triri = lccc[r.Next(0, lccc.Count)];
+                            si.RandItem.itemType = triri.itemType;
+                            si.RandItem.childType = triri.childType;
+                            si.RandItem.num = acfg.num;
+                            si.RandItem.price = acfg.price;
+                        }
+                        tmpData.Add(si);
+                        if (tmpData.Count >= 12)
+                        {
+                            MemoryCacheService.Default.SetCache("sect_shop_" + sect_id, tmpData, 24 * 60);
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 }

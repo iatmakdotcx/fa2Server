@@ -2486,11 +2486,175 @@ namespace fa2Server.Controllers
         {
             JObject ResObj = new JObject();
             ResObj["code"] = 1;
-            ResObj["type"] = 1;
+            ResObj["type"] = 114;
+            //ResObj["message"] = "不卖，不卖"
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            var shopItems = CacheHelper.Getsect_shop(sectMember.sectId);
+            JArray sects_shop = new JArray();
+            if (shopItems != null)
+            {
+                foreach (var item in shopItems)
+                {
+                    F2.sect_shop_cfg cfg = item.RandItem ?? item.cfgItem;
+                    var bi = new JObject(
+                            new JProperty("price", cfg.price),
+                            new JProperty("itemType", cfg.itemType),
+                            new JProperty("childType", cfg.childType),
+                            new JProperty("num", cfg.num)
+                        );
+                    if (!string.IsNullOrEmpty(item.player_name))
+                    {
+                        bi["player_name"] = item.player_name;
+                        bi["uuid"] = item.uuid;
+                    }
+                    sects_shop.Add(bi);
+                }
+            }
 
-            ResObj["message"] = "不卖，不卖";
+            ResObj["data"] = new JObject(new JProperty("sects_shop", sects_shop));
+            ResObj["code"] = 0;
+            ResObj["type"] = 114;
+            return ResObj;
+        }
+        [HttpPost("/api/v5/sects/buy")]
+        public JObject sects_buy([FromBody] JObject value)
+        {
+            JObject ResObj = new JObject();
             ResObj["code"] = 1;
-            ResObj["type"] = 1;
+            ResObj["type"] = 113;
+            ResObj["message"] = "success";
+            int shop_index = value["shop_index"].ToString().AsInt();
+            F2.user account = getUserFromCache();
+            F2.sect_member sectMember = updateSectInfo(account);
+            var shopItems = CacheHelper.Getsect_shop(sectMember.sectId);
+            if (shop_index >= 0 && shop_index < shopItems.Count)
+            {
+                var item_info = shopItems[shop_index];
+                var dbh = DbContext.Get();
+                lock (item_info)
+                {
+                    if (item_info.uuid != null)
+                    {
+                        ResObj["message"] = "当前商品已被其他人买走了";
+                        return ResObj;
+                    }
+
+                    if (item_info.cfgItem.type == 1)
+                    {
+                        //商会令 
+                        if (sectMember.sect_coin > 0 && sectMember.sect_coin < 100000000)
+                        {
+                            ResObj["message"] = "你太穷了！至少需要1个亿才能购买当前商品！";
+                            return ResObj;
+                        }
+
+                        var optc = dbh.Db.Updateable<F2.sect_member>()
+                            .SetColumns(ii => ii.sect_coin == 0)
+                            .Where(ii => ii.id == sectMember.id && (ii.sect_coin >= 100000000 || ii.sect_coin < 0)).ExecuteCommand();
+                        if (optc == 0)
+                        {
+                            ResObj["message"] = "宗门令不足";
+                            return ResObj;
+                        }
+
+                        var r = new Random();
+                        var cis = (int[])item_info.cfgItem.ccc;
+                        var shl = cis[r.Next(0, cis.Length)];
+                        dbh.Db.Updateable<F2.user>()
+                            .SetColumns(ii => ii.shl == ii.shl + shl)
+                            .Where(ii => ii.id == account.id).ExecuteCommand();
+                        item_info.uuid = account.uuid;
+                        item_info.player_name = sectMember.playerName;
+
+                        ResObj["message"] = $"你拼尽家产\r\n抽中了 {shl} 个商会令";
+                        return ResObj;
+
+                    } else if (item_info.cfgItem.type == 2)
+                    {
+                        //礼包抽奖
+                        if (sectMember.sect_coin > 0 && sectMember.sect_coin < 100000000)
+                        {
+                            ResObj["message"] = "你太穷了！至少需要1个亿才能购买当前商品！";
+                            return ResObj;
+                        }
+                        var optc = dbh.Db.Updateable<F2.sect_member>()
+                            .SetColumns(ii => ii.sect_coin == 0)
+                            .Where(ii => ii.id == sectMember.id && (ii.sect_coin >= 100000000 || ii.sect_coin < 0)).ExecuteCommand();
+                        if (optc == 0)
+                        {
+                            ResObj["message"] = "宗门令不足";
+                            return ResObj;
+                        }
+
+                        var r = new Random();
+                        var cis = (List<F2.sect_shop_cfg.cccItem>)item_info.cfgItem.ccc;
+                        var ci = cis[r.Next(0, cis.Count)];
+
+                        JObject jo = new JObject(
+                                   new JProperty("error", 0),
+                                   new JProperty("GETBODY", new JObject(
+                                       new JProperty("itemGetArr", new JArray(new JObject(
+                                                new JProperty("itemType", ci.itemType),
+                                                new JProperty("childType", ci.childType),
+                                                new JProperty("itemNum", 1),
+                                                new JProperty("num", "1")
+                                            )))
+                                       ))
+                                   );
+                        F2.giftCode gif = new F2.giftCode();
+                        gif.create_at = DateTime.Now;
+                        gif.uuid = account.uuid;
+                        gif.code = 1;
+                        gif.itemData = jo.ToString(Formatting.None);
+                        dbh.Db.Insertable(gif).ExecuteCommand();
+
+                        if (ci.itemType == 13)
+                        {
+                            ResObj["message"] = $"你拼尽家产\r\n抽中了一张【主宰】图纸\r\n兑换码：1";
+                        }
+                        else
+                        {
+                            ResObj["message"] = $"你拼尽家产\r\n结果只抽中了一个辣鸡装备\r\n兑换码：1";
+                        }
+                        return ResObj;
+                    }
+                    else {
+                        var optc = dbh.Db.Updateable<F2.sect_member>()
+                           .SetColumns(ii => ii.sect_coin == ii.sect_coin - item_info.cfgItem.price)
+                           .Where(ii => ii.id == sectMember.id && ii.sect_coin >= item_info.cfgItem.price).ExecuteCommand();
+                        if (optc == 0)
+                        {
+                            ResObj["message"] = "宗门令不足";
+                            return ResObj;
+                        }
+                        item_info.uuid = account.uuid;
+                        item_info.player_name = sectMember.playerName;
+                        F2.sect_shop_cfg cfg = item_info.RandItem ?? item_info.cfgItem;
+                        ResObj["data"] = new JObject(new JProperty("item_info", new JObject(
+                                new JProperty("itemType", cfg.itemType),
+                                new JProperty("childType", cfg.childType),
+                                new JProperty("num", item_info.cfgItem.num),
+                                new JProperty("price", item_info.cfgItem.price),
+                                new JProperty("gl", item_info.cfgItem.price),
+                                new JProperty("player_name", sectMember.playerName),
+                                new JProperty("uuid", account.uuid)
+                            )),
+                            new JProperty("sect_coin", sectMember.sect_coin),
+                            new JProperty("total_sect_coin", 55555)
+                            );
+                    }
+                }
+            }
+            else
+            {
+                ResObj["message"] = "购买内容错误";
+                return ResObj;
+            }
+
+           
+            ResObj["code"] = 0;
+            ResObj["type"] = 113;
             return ResObj;
         }
         [HttpPost("api/v3/sects/dange_info")]
@@ -3931,7 +4095,7 @@ namespace fa2Server.Controllers
                         award.playerId = item;
                         dbh.Db.Insertable(award).ExecuteCommand();
                     }
-
+                    CacheHelper.Setsect_shop(sectMember.sectId);
                     //var rr = new Random();
                     //var skills = new JArray();
                     //for (int i = 0; i < 6; i++)

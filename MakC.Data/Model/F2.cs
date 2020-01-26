@@ -59,7 +59,7 @@ namespace MakC.Data.Model
             //飞跃令结束时间
             public DateTime fylendTime { get; set; }
             //飞跃令上次获取时间
-            public DateTime fylgetTime { get; set; }            
+            public DateTime fylgetTime { get; set; }
             //塔加速开始时间
             public DateTime jsStartTime { get; set; }
             //塔加速结束时间
@@ -119,7 +119,7 @@ namespace MakC.Data.Model
 
             [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
             public int id { get; set; }
-           
+
             public string f_itemType { get; set; }
             public string f_childType { get; set; }
             public int f_count { get; set; }
@@ -129,8 +129,8 @@ namespace MakC.Data.Model
             /// <summary>
             /// 0全平台，1苹果，2安卓
             /// </summary>
-            public int platform { get; set; }           
-            public string day { get; set; }           
+            public int platform { get; set; }
+            public string day { get; set; }
         }
         [SugarTable("shops")]
         public class shop
@@ -249,7 +249,7 @@ namespace MakC.Data.Model
             [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
             public int id { get; set; }
             public DateTime create_at { get; set; }
-            public int sectId { get; set; }            
+            public int sectId { get; set; }
             public string playerName { get; set; }
             public string playerUuid { get; set; }
             public string content { get; set; }
@@ -341,7 +341,7 @@ namespace MakC.Data.Model
             public int point { get; set; }
             public string JJCRoles { get; set; }
             public string zfDict { get; set; }
-            public int FirstRoleID { get; set; }            
+            public int FirstRoleID { get; set; }
             public string enemyData { get; set; }
             public bool isRobot { get; set; }
             public string playerName { get; set; }
@@ -399,8 +399,56 @@ namespace MakC.Data.Model
             public string zhen_rong { get; set; }
             public string logs { get; set; }
             public string srDict { get; set; }
-         
+
             public bool isAndroid { get; set; }
+        }
+
+        [SugarTable("sect_shop_cfg")]
+        public class sect_shop_cfg
+        {
+            public class cccItem
+            {
+                public int itemType { get; set; }
+                public int childType { get; set; }
+                public cccItem(int itemType, int childType) {
+                    this.itemType = itemType;
+                    this.childType = childType;
+                }
+            }
+            public class cccShl
+            {
+                public int[] sl { get; set; }
+            }
+            public sect_shop_cfg()
+            {
+            }
+
+
+
+            [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
+            public int id { get; set; }
+
+            public int itemType { get; set; }
+            public int childType { get; set; }
+            public int num { get; set; }
+            public int price { get; set; }
+            public int threshold { get; set; }
+            public object ccc { get; set; }
+            public int type { get; set; }
+        }
+
+        public class sect_shop
+        {
+            public sect_shop(sect_shop_cfg cfgItem)
+            {
+                this.cfgItem = cfgItem;
+            }
+
+            public sect_shop_cfg cfgItem { get; set; }
+            public sect_shop_cfg RandItem { get; set; }
+
+            public string uuid { get; set; }
+            public string player_name { get; set; }
         }
     }
 
