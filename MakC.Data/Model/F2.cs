@@ -190,6 +190,7 @@ namespace MakC.Data.Model
             public int remain_dimension_boss_killCnt { get; set; }
             public int boss_CankillCnt { get; set; }
             public int boss_killCnt { get; set; }
+            public bool autojoin { get; set; }
         }
         [SugarTable("sect_member")]
         public class sect_member

@@ -216,7 +216,7 @@ namespace fa2Server
                     tmpData = MemoryCacheService.Default.GetCache<List<F2.sect_shop_cfg>>("sect_shop_cfg");
                     if (tmpData == null)
                     {
-                        tmpData = DbContext.Get().GetEntityDB<F2.sect_shop_cfg>().GetList();
+                        tmpData = DbContext.Get().GetEntityDB<F2.sect_shop_cfg>().GetList(ii => ii.threshold >= 0);
                         if (tmpData != null)
                         {
                             foreach (var item in tmpData)
@@ -288,5 +288,22 @@ namespace fa2Server
                 }
             }
         }
+
+        public static void SetSect_BossCd(int sect_id,int timeout = 5)
+        {
+            MemoryCacheService.Default.SetCache("sect_bosscd_" + sect_id, DateTime.Now.AddMinutes(timeout).ToString(), timeout);
+        }
+        public static int GetSect_BossCd(int sect_id)
+        {
+            string ts = MemoryCacheService.Default.GetCache<string>("sect_bosscd_" + sect_id);
+            DateTime dts;
+            int its = 0;
+            if (!string.IsNullOrEmpty(ts) && DateTime.TryParse(ts, out dts) && (its = (int)((dts - DateTime.Now).TotalSeconds)) > 0)
+            {
+                return its;
+            }
+            return 0;            
+        }
+
     }
 }

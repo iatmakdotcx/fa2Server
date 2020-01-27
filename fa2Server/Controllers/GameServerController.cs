@@ -1061,8 +1061,9 @@ namespace fa2Server.Controllers
                             {
                                 F2.sect_member sectMember = updateSectInfo(account);
                                 optCnt = dbh.Db.Updateable<F2.sect_member>()
-                                    .ReSetValue(ii => ii.CanAttackBossCnt == (ii.CanAttackBossCnt + 1))
-                                    .UpdateColumns(ii => ii.CanAttackBossCnt).Where(ii => ii.id == sectMember.id).ExecuteCommand();
+                                    .SetColumns(ii => ii.CanAttackBossCnt == (ii.CanAttackBossCnt + 1))
+                                    .SetColumns(ii => ii.CanAckDimBossCnt == (ii.CanAckDimBossCnt + 1))
+                                    .Where(ii => ii.id == sectMember.id).ExecuteCommand();
                                 if (optCnt != 1)
                                 {
                                     dbh.Db.RollbackTran();
@@ -2057,7 +2058,8 @@ namespace fa2Server.Controllers
             F2.user account = getUserFromCache();
             F2.sect_member sectMember = updateSectInfo(account);
             int sect_id = value["sect_id"].AsInt();
-            if (sect_id < 5)
+            F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sect_id);
+            if (sect_id < 5 || sect.autojoin)
             {
 
                 sectMember.sectId = sect_id;
@@ -2070,7 +2072,7 @@ namespace fa2Server.Controllers
             if (dbh.Db.Queryable<F2.sect_joinRequest>().Count(ii => ii.sectId == 0 && ii.playerId == sectMember.playerId) == 0)
             {
                 //没有有宗门则提交申请
-                F2.sects sect = dbh.GetEntityDB<F2.sects>().GetById(sect_id);
+                
                 if (sect.creator_id == account.id)
                 {
                     //自己创建的宗门，也直接进
@@ -3949,9 +3951,6 @@ namespace fa2Server.Controllers
         #endregion BOSS
 
         #region 次元门
-        private static List<int> dimensionBossSkills = new List<int>() {
-           172, 180,182,183
-        };
 
         [HttpPost("api/v3/sects/dimension_call")]
         public JObject dimension_call([FromBody] JObject value)
@@ -3971,6 +3970,12 @@ namespace fa2Server.Controllers
             if (sect.remain_dimension_boss_killCnt >= sect.remain_dimension_boss_CankillCnt)
             {
                 ResObj["message"] = $"今天Biss已击杀了 {sect.remain_dimension_boss_killCnt} 次";
+                return ResObj;
+            }
+            int cd = CacheHelper.GetSect_BossCd(sectMember.sectId);
+            if (cd > 0)
+            {
+                ResObj["message"] = $" 还需等待 {cd} 秒";
                 return ResObj;
             }
             var rr = new Random();
@@ -4095,6 +4100,7 @@ namespace fa2Server.Controllers
                         award.playerId = item;
                         dbh.Db.Insertable(award).ExecuteCommand();
                     }
+                    CacheHelper.SetSect_BossCd(sectMember.sectId);
                     CacheHelper.Setsect_shop(sectMember.sectId);
                     //var rr = new Random();
                     //var skills = new JArray();
