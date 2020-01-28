@@ -1070,7 +1070,20 @@ namespace fa2Server.Controllers
                                     ResObj["message"] = "购买失败！";
                                     return ResObj;
                                 }
-                                ResObj["message"] = $"每日可挑战 {sectMember.CanAttackBossCnt + 1} 次宗门Boss";
+                                optCnt = dbh.Db.Updateable<F2.sects>()
+                                    .SetColumns(ii => ii.boss_CankillCnt == ii.boss_CankillCnt + 1)
+                                    .SetColumns(ii => ii.remain_dimension_boss_CankillCnt == ii.remain_dimension_boss_CankillCnt + 1)
+                                    .Where(ii => ii.id == sectMember.sectId).ExecuteCommand();
+                                if (optCnt != 1)
+                                {
+                                    dbh.Db.RollbackTran();
+                                    ResObj["message"] = "你没有加入宗门！";
+                                    return ResObj;
+                                }
+
+                                ResObj["message"] = $"每日可挑战 {sectMember.CanAttackBossCnt + 1} 次宗门Boss\r\n" +
+                                    $"可挑战 {sectMember.CanAckDimBossCnt} 次次元boss\r\n"+
+                                    $"所在宗门每日boss刷新次数 + 1"; 
                                 break;
                             }
                         case "刷新宗门Boss":
