@@ -289,7 +289,7 @@ namespace fa2Server
             }
         }
 
-        public static void SetSect_BossCd(int sect_id,int timeout = 5)
+        public static void SetSect_BossCd(int sect_id,int timeout = 1)
         {
             MemoryCacheService.Default.SetCache("sect_bosscd_" + sect_id, DateTime.Now.AddMinutes(timeout).ToString(), timeout);
         }

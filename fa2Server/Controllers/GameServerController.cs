@@ -2533,6 +2533,7 @@ namespace fa2Server.Controllers
             return ResObj;
         }
         [HttpPost("/api/v5/sects/buy")]
+        [HttpPost("/api/v4_a/sects/buy")]
         public JObject sects_buy([FromBody] JObject value)
         {
             JObject ResObj = new JObject();
