@@ -5279,7 +5279,7 @@ namespace fa2Server.Controllers
                 xkts.start_recover = DateTime.Now;
                 xkts.FirstRoleID="60005";
                 xkts.zfDict="{}";
-                xkts.JJCRoles="{}";
+                xkts.JJCRoles="[]";
                 xkts.zhen_rong="{}";
 
                 dbh.Db.Insertable(xkts).ExecuteCommand();
@@ -5358,7 +5358,15 @@ namespace fa2Server.Controllers
                 xkts.tl--;
                 dbh.Db.Updateable(xkts).UpdateColumns("tl").ExecuteCommand();
                 ResObj["code"] = 0;
-                ResObj["type"] = 110;
+                if (HttpContext.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1)
+                {
+                    //is Android
+                    ResObj["type"] = 103;
+                }
+                else
+                {
+                    ResObj["type"] = 110;
+                }
                 ResObj["message"] = "success";
                 return ResObj;
             }
@@ -5370,7 +5378,15 @@ namespace fa2Server.Controllers
                     xkts.tl--;
                     dbh.Db.Updateable(xkts).UpdateColumns("tl").ExecuteCommand();
                     ResObj["code"] = 0;
-                    ResObj["type"] = 110;
+                    if (HttpContext.Request.Headers["User-Agent"].ToString().IndexOf("Darwin") == -1)
+                    {
+                        //is Android
+                        ResObj["type"] = 103;
+                    }
+                    else
+                    {
+                        ResObj["type"] = 110;
+                    }
                     ResObj["message"] = "success";
                     return ResObj;
                 }

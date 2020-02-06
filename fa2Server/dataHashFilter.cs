@@ -233,7 +233,9 @@ namespace fa2Server
                     xx["userAtkR"] = "iOC582ZAyCfH79K4K7bFvC00eUqp3BM799GoPlV5yP8k0R6SP7k3mrOpIKF9L5vuyOIFh23K8R6X7";
                     ResponseBody = Response_AESEncrypt_475(xx.ToString(Newtonsoft.Json.Formatting.None), uuid, token, ServerTime);
                 }
-                else if (context.Request.Path.Value.Contains("/api/v4_a/") || context.Request.Path.Value.Contains("/api/v7_a/") || context.Request.Path.Value.Contains("/api/v8/"))
+                else if (context.Request.Path.Value.Contains("/api/v4_a/") || 
+                    context.Request.Path.Value.Contains("/api/v7_a/") || 
+                    context.Request.Path.Value.Contains("/api/v8/"))
                 {
                     //加盐
                     var xx = (JObject)JsonConvert.DeserializeObject(ResponseBody);

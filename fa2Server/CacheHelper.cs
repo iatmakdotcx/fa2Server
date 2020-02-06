@@ -126,7 +126,7 @@ namespace fa2Server
         };
         private static List<int> resvSkill = new List<int>()
         {
-            291,346,294,71
+            291,346,294,71,25
         };
         public static JObject GetExchangeData(bool isAndroid)
         {
